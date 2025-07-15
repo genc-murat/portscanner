@@ -557,7 +557,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "port_scanner"
+name = "portscanner"
 version = "0.4.0"
 dependencies = [
  "clap",

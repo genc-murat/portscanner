@@ -23,7 +23,7 @@ pub struct Args {
 
 #[tokio::main]
 async fn main() {
-    let matches = Command::new("port_scanner")
+    let matches = Command::new("portscanner")
         .version("0.4.0")
         .about("A fast, modern port scanner with advanced service detection and OS fingerprinting")
         .arg(
@@ -171,7 +171,7 @@ async fn main() {
             if e.contains("raw socket") || e.contains("root") {
                 eprintln!("Hint: Try running with sudo for SYN scan, or use regular TCP scan");
                 eprintln!(
-                    "   Example: sudo ./port_scanner -t {} --stealth",
+                    "   Example: sudo ./portscanner -t {} --stealth",
                     matches.get_one::<String>("target").unwrap()
                 );
             }

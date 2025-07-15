@@ -1,16 +1,16 @@
 [package]
-name = "port_scanner"
+name = "portscanner"
 version = "0.4.0"
 edition = "2024"
 authors = ["Murat Genc <muttafi@gmail.com>"]
 description = "A fast, modern port scanner with stealth SYN scan support"
 license = "MIT"
-repository = "https://github.com/genc-murat/port_scanner"
+repository = "https://github.com/genc-murat/portscanner"
 keywords = ["networking", "security", "port-scanner", "nmap", "stealth"]
 categories = ["network-programming", "command-line-utilities"]
 
 [lib]
-name = "port_scanner"
+name = "portscanner"
 path = "src/lib.rs"
 
 [dependencies]
@@ -35,7 +35,7 @@ name = "scan_benchmark"
 harness = false
 
 [[bin]]
-name = "port_scanner"
+name = "portscanner"
 path = "src/main.rs"
 
 [profile.release]
