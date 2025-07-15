@@ -332,14 +332,6 @@ This tool is for educational and authorized testing purposes only. Always ensure
 - Built with the amazing [Tokio](https://tokio.rs/) async runtime
 - CLI powered by [Clap](https://clap.rs/)
 
-## Support
-
-If you encounter any issues or have questions:
-
-- [Report a bug](https://github.com/genc-murat/port_scanner/issues)
-- [Request a feature](https://github.com/genc-murat/port_scanner/issues)
-- [Start a discussion](https://github.com/genc-murat/port_scanner/discussions)
-
 ---
 
 ⭐ If you find this project useful, please consider giving it a star on GitHub!
