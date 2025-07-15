@@ -1,17 +1,21 @@
 # Port Scanner
 
-A fast, modern port scanner written in Rust with async networking and banner grabbing capabilities. Inspired by Nmap but built for speed and simplicity.
+A fast, modern port scanner written in Rust with async networking, stealth SYN scan, advanced service detection, and OS fingerprinting capabilities. Inspired by Nmap but built for speed and simplicity.
 
 ## Features
 
 - **Fast Async Scanning**: Built with Tokio for high-performance concurrent scanning
+- **Stealth SYN Scan**: Raw socket SYN scanning for speed and stealth (Linux/Unix)
 - **Banner Grabbing**: Extract service banners and version information
+- **Advanced Service Detection**: Nmap-style service identification with 150+ signatures
+- **OS Fingerprinting**: Operating system detection via TCP/IP stack analysis
 - **Multiple Target Support**: Scan IP addresses or hostnames
-- **Service Detection**: Identify 150+ common services automatically
+- **Service Detection**: Identify services with version and product information
 - **Colored Output**: Beautiful terminal output with syntax highlighting
 - **JSON Export**: Export results in JSON format for further analysis
 - **Configurable**: Customize concurrency, timeouts, and port ranges
 - **Safe**: Built-in rate limiting and timeout controls
+- **Auto Mode**: Intelligent scan type selection based on privileges
 
 ## Quick Start
 
@@ -25,8 +29,20 @@ cd port_scanner
 # Build the project
 cargo build --release
 
-# Run a basic scan
+# Run a basic TCP scan
 ./target/release/port_scanner -t google.com -p 80,443
+
+# Run with service detection
+./target/release/port_scanner -t 192.168.1.1 -p 1-1000 --service-detection
+
+# Run with OS fingerprinting
+./target/release/port_scanner -t 192.168.1.1 -p 22,80,443 -O
+
+# Run aggressive scan (everything enabled)
+./target/release/port_scanner -t 192.168.1.1 -p 1-1000 -A
+
+# Run stealth SYN scan (requires root)
+sudo ./target/release/port_scanner -t 192.168.1.1 -s
 ```
 
 ### Basic Usage
@@ -48,7 +64,7 @@ port_scanner -t target.com -p 80,443 -b -j > results.json
 ## Usage
 
 ```
-Port Scanner v0.1.0
+Port Scanner v0.4.0
 
 USAGE:
     port_scanner [OPTIONS] --target <TARGET>
@@ -59,7 +75,12 @@ OPTIONS:
     -c, --concurrency <CONCURRENCY> Number of concurrent connections [default: 100]
     -T, --timeout <TIMEOUT>         Connection timeout in milliseconds [default: 3000]
     -b, --banner                    Enable banner grabbing
+    -s, --stealth                   Use stealth SYN scan (requires root)
     -j, --json                      Output results in JSON format
+        --scan-type <TYPE>          Scan type: tcp, syn, or auto [default: auto]
+        --service-detection         Enable advanced service detection
+    -O, --os-detection              Enable OS fingerprinting
+    -A, --aggressive               Aggressive mode (service detection + banner + OS detection)
     -h, --help                      Print help information
     -V, --version                   Print version information
 ```
@@ -116,30 +137,52 @@ port_scanner -t localhost -p 3000,4000,5000,8000,8080,9000 -b
 
 ## Sample Output
 
-### Standard Output
+### Standard Output (Aggressive Scan)
 ```
-Port Scanner v0.1.0
-Target: example.com
-Ports: 22,80,443
-Concurrent connections: 100
-Timeout: 3000ms
-Banner grabbing enabled!
+Port Scanner v0.4.0
+Target: 192.168.1.1
+ Aggressive mode enabled (service detection + banner grabbing + OS detection)
+ Advanced service detection enabled
+  OS fingerprinting enabled
 
-Starting scan: 93.184.216.34 (3 ports)
+Starting scan: 192.168.1.1 (3 ports)
+Performing OS detection for 192.168.1.1
 
-======================================================================
-Port Scan Results - 93.184.216.34
-======================================================================
-2 open ports found:
+================================================================================
+Port Scan Results - 192.168.1.1
+================================================================================
+3 open ports found:
 
-   80 open http         ( 156ms)
-      Banner: Server: ECS (dcb/7F83)
+🔗    22 open ssh OpenSSH 8.2p1        (  45ms)
+        Banner: SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.5
+        CPE: cpe:/a:openbsd:openssh:8.2p1
 
-  443 open https        ( 198ms)
-      Banner: Server: ECS (dcb/7F83)
+🔗    80 open http Apache httpd 2.4.41  ( 156ms)
+        Banner: Server: Apache/2.4.41 (Ubuntu)
+        CPE: cpe:/a:apache:http_server:2.4.41
 
-======================================================================
-Scan completed! Total time: 0.20s
+🔗   443 open https nginx 1.18.0       ( 198ms)
+        Banner: Server: nginx/1.18.0
+        CPE: cpe:/a:nginx:nginx:1.18.0
+
+OS Detection Results
+----------------------------------------
+Operating System: Linux (85% confidence)
+    Details:
+      • TTL: 64
+      • Window Size: 29200
+      • MSS: 1460
+      • TCP Timestamps: Enabled
+      • Window Scaling: Enabled
+      • SACK: Enabled
+
+Scan Summary
+----------------------------------------
+Total ports scanned: 3
+Open ports: 3
+Scan time: 0.25s
+Services identified with high confidence: 3/3
+OS detection: Success (High confidence)
 ```
 
 ### JSON Output
@@ -178,6 +221,12 @@ clap = { version = "4.0", features = ["derive"] }
 colored = "2.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+rand = "0.8"
+regex = "1.10"
+
+# Unix-specific dependencies for raw socket support
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
 ```
 
 ### Build Steps
@@ -200,7 +249,7 @@ cargo test
 cargo run -- -t google.com -p 80,443
 ```
 
-## Configuration
+## 🔧 Configuration
 
 ### Performance Tuning
 
@@ -221,17 +270,23 @@ port_scanner -t example.com -p 1-1000 -c 100 -T 3000
 port_scanner -t target.com -p 80,443 -c 50 -T 10000
 ```
 
-## Service Detection
+## Supported Detection
 
-The scanner can automatically identify 150+ services including:
+### **Service Detection (150+ signatures)**
+- **Web Services**: Apache, nginx, IIS, lighttpd, Node.js, Django
+- **Remote Access**: OpenSSH, Dropbear, Telnet, RDP, VNC
+- **Mail Services**: Postfix, Sendmail, Exchange, Dovecot, Courier
+- **Databases**: MySQL, PostgreSQL, MongoDB, Redis, MSSQL, Oracle
+- **File Services**: vsftpd, ProFTPD, Samba, NFS, TFTP
+- **Network Services**: BIND DNS, DHCP, SNMP, NTP
 
-- **Web Services**: HTTP, HTTPS, Apache, Nginx, IIS
-- **Databases**: MySQL, PostgreSQL, MongoDB, Redis, MSSQL
-- **Remote Access**: SSH, Telnet, RDP, VNC
-- **Mail Services**: SMTP, POP3, IMAP, Exchange
-- **File Transfer**: FTP, SFTP, TFTP, SMB, NFS
-- **Development**: Node.js, Python, Docker, Kubernetes
-- **And many more...**
+### **OS Fingerprinting**
+- **Linux**: Ubuntu, CentOS, RHEL, Debian, Alpine, Android
+- **Windows**: 7, 8, 10, 11, Server 2016/2019/2022
+- **Unix**: FreeBSD, OpenBSD, NetBSD, Solaris
+- **Apple**: macOS 10.x, 11.x, 12.x+
+- **Network Devices**: Cisco IOS, Juniper JunOS
+- **Embedded**: IoT devices, routers, switches
 
 ## Contributing
 
@@ -277,6 +332,14 @@ This tool is for educational and authorized testing purposes only. Always ensure
 - Built with the amazing [Tokio](https://tokio.rs/) async runtime
 - CLI powered by [Clap](https://clap.rs/)
 
+## Support
+
+If you encounter any issues or have questions:
+
+- [Report a bug](https://github.com/genc-murat/port_scanner/issues)
+- [Request a feature](https://github.com/genc-murat/port_scanner/issues)
+- [Start a discussion](https://github.com/genc-murat/port_scanner/discussions)
+
 ---
 
-If you find this project useful, please consider giving it a star on GitHub!
+⭐ If you find this project useful, please consider giving it a star on GitHub!
