@@ -23,7 +23,7 @@ A fast, modern port scanner written in Rust with async networking, stealth SYN s
 
 ```bash
 # Clone the repository
-git clone https://github.com/genc-murat/port_scanner.git
+git clone https://github.com/genc-murat/portscanner.git
 cd port_scanner
 
 # Build the project
@@ -233,7 +233,7 @@ libc = "0.2"
 
 ```bash
 # Clone the repository
-git clone https://github.com/genc-murat/port_scanner.git
+git clone https://github.com/genc-murat/portscanner.git
 cd port_scanner
 
 # Build in debug mode
@@ -296,7 +296,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 ```bash
 # Fork and clone the repo
-git clone https://github.com/genc-murat/port_scanner.git
+git clone https://github.com/genc-murat/portscanner.git
 cd port_scanner
 
 # Create a feature branch
