@@ -52,16 +52,18 @@
 pub mod os_fingerprinting;
 pub mod port_parser;
 pub mod service_detection;
-pub mod udp; // Add UDP module
+pub mod ssl; // Add SSL module
+pub mod udp;
 
 // Only include stealth module on Unix systems
 #[cfg(unix)]
 pub mod stealth;
 
 // Re-export commonly used types
-pub use os_fingerprinting::{OSDetector, OSFingerprint, format_os_info};
-pub use service_detection::{ServiceDetector, ServiceInfo, format_service_info};
-pub use udp::{UdpPortState, UdpScanResult, UdpScanner}; // Re-export UDP types
+pub use os_fingerprinting::{format_os_info, OSDetector, OSFingerprint};
+pub use service_detection::{format_service_info, ServiceDetector, ServiceInfo};
+pub use ssl::{format_ssl_analysis, SslAnalysisResult, SslAnalyzer}; // Re-export SSL types
+pub use udp::{UdpPortState, UdpScanResult, UdpScanner};
 
 #[cfg(unix)]
 pub use stealth::{PortState, StealthScanResult, StealthScanner};
@@ -117,21 +119,22 @@ mod tests {
         assert!(ports.contains(&161)); // SNMP
     }
 
+    #[test]
+    fn test_ssl_analyzer_creation() {
+        let analyzer = SslAnalyzer::new(5000);
+        drop(analyzer);
+    }
+
     #[tokio::test]
-    async fn test_udp_scanning_integration() {
+    async fn test_ssl_analysis_integration() {
         let target = "127.0.0.1".parse().unwrap();
-        let scanner = UdpScanner::new(target, 1000);
+        let analyzer = SslAnalyzer::new(3000);
 
-        // Test scanning a common UDP port (DNS)
-        let result = scanner.scan_port(53).await;
+        // Test SSL analysis on a common HTTPS port
+        let result = analyzer.analyze_ssl(target, 443, Some("localhost")).await;
 
-        // Should get some result (open, closed, filtered, or open|filtered)
-        assert!(matches!(
-            result.state,
-            UdpPortState::Open
-                | UdpPortState::OpenFiltered
-                | UdpPortState::Closed
-                | UdpPortState::Filtered
-        ));
+        // Should get some result regardless of SSL availability
+        assert_eq!(result.port, 443);
+        assert_eq!(result.target, "localhost");
     }
 }

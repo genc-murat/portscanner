@@ -2,6 +2,7 @@ mod os_fingerprinting;
 mod port_parser;
 mod scanner;
 mod service_detection;
+mod ssl; // Add SSL module
 mod stealth;
 mod udp;
 
@@ -18,9 +19,10 @@ pub struct Args {
     pub banner: bool,
     pub stealth: bool,
     pub scan_type: String,
-    pub protocol: Option<String>, // Add protocol option
+    pub protocol: Option<String>,
     pub service_detection: bool,
     pub os_detection: bool,
+    pub ssl_analysis: bool, // Add SSL analysis flag
     pub aggressive: bool,
 }
 
@@ -112,10 +114,16 @@ async fn main() {
                 .action(clap::ArgAction::SetTrue)
         )
         .arg(
+            Arg::new("ssl_analysis")
+                .long("ssl-analysis")
+                .help("Enable SSL/TLS analysis for HTTPS and other SSL services")
+                .action(clap::ArgAction::SetTrue)
+        )
+        .arg(
             Arg::new("aggressive")
                 .short('A')
                 .long("aggressive")
-                .help("Enable aggressive detection (service detection + banner grabbing + OS detection)")
+                .help("Enable aggressive detection (service detection + banner grabbing + OS detection + SSL analysis)")
                 .action(clap::ArgAction::SetTrue)
         )
         .arg(
@@ -154,6 +162,7 @@ async fn main() {
         scan_type: matches.get_one::<String>("scan_type").unwrap().clone(),
         service_detection: matches.get_flag("service_detection"),
         os_detection: matches.get_flag("os_detection"),
+        ssl_analysis: matches.get_flag("ssl_analysis"), // Add SSL analysis flag
         aggressive: matches.get_flag("aggressive"),
     };
 
@@ -178,7 +187,8 @@ async fn main() {
         args.service_detection = true;
         args.banner = true;
         args.os_detection = true;
-        println!("Aggressive mode enabled (service detection + banner grabbing + OS detection)");
+        args.ssl_analysis = true; // Include SSL analysis in aggressive mode
+        println!("Aggressive mode enabled (service detection + banner grabbing + OS detection + SSL analysis)");
     }
 
     // Validate protocol combinations
@@ -193,9 +203,7 @@ async fn main() {
     }
 
     if args.os_detection && args.protocol.as_deref() == Some("udp") {
-        eprintln!(
-            "Warning: OS detection requires TCP ports. No OS detection will be performed for UDP-only scans."
-        );
+        eprintln!("Warning: OS detection requires TCP ports. No OS detection will be performed for UDP-only scans.");
         args.os_detection = false;
     }
 
@@ -224,6 +232,10 @@ async fn main() {
 
     if args.os_detection {
         println!("OS fingerprinting enabled");
+    }
+
+    if args.ssl_analysis {
+        println!("SSL/TLS analysis enabled");
     }
 
     // UDP-specific warnings
