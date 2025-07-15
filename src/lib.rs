@@ -1,22 +1,39 @@
 //! # Port Scanner
 //!
 //! A fast, modern port scanner written in Rust with async networking,
-//! stealth SYN scan, advanced service detection, and OS fingerprinting capabilities.
+//! stealth SYN scan, UDP scanning, advanced service detection, and OS fingerprinting capabilities.
 //!
 //! ## Features
 //!
 //! - **Fast Async Scanning**: Built with Tokio for high-performance concurrent scanning
+//! - **TCP & UDP Support**: Comprehensive scanning for both TCP and UDP protocols
 //! - **Stealth SYN Scan**: Raw socket SYN scanning for speed and stealth (Linux/Unix)
+//! - **UDP Service Detection**: Protocol-specific probes for common UDP services
 //! - **Advanced Service Detection**: Nmap-style service identification with 150+ signatures
 //! - **OS Fingerprinting**: Operating system detection via TCP/IP stack analysis
 //! - **Banner Grabbing**: Extract service banners and version information
 //! - **JSON Export**: Export results in JSON format for further analysis
+//!
+//! ## Supported Protocols
+//!
+//! ### TCP Scanning
+//! - TCP Connect scan (default)
+//! - Stealth SYN scan (Linux/Unix with root privileges)
+//! - Banner grabbing for service identification
+//! - Service version detection
+//!
+//! ### UDP Scanning
+//! - UDP probe scanning with service-specific payloads
+//! - Support for common UDP services (DNS, NTP, SNMP, DHCP, etc.)
+//! - Open|Filtered state detection
+//! - Protocol-specific response analysis
 //!
 //! ## Example
 //!
 //! ```rust,no_run
 //! use port_scanner::port_parser::parse_ports;
 //! use port_scanner::service_detection::ServiceDetector;
+//! use port_scanner::udp::UdpScanner;
 //!
 //! // Parse port ranges
 //! let ports = parse_ports("22,80,443,8000-9000").unwrap();
@@ -25,11 +42,17 @@
 //! // Create service detector
 //! let detector = ServiceDetector::new();
 //! // Use detector for service identification...
+//!
+//! // Create UDP scanner
+//! let target = "127.0.0.1".parse().unwrap();
+//! let udp_scanner = UdpScanner::new(target, 3000);
+//! // Use UDP scanner for UDP port scanning...
 //! ```
 
 pub mod os_fingerprinting;
 pub mod port_parser;
 pub mod service_detection;
+pub mod udp; // Add UDP module
 
 // Only include stealth module on Unix systems
 #[cfg(unix)]
@@ -38,6 +61,7 @@ pub mod stealth;
 // Re-export commonly used types
 pub use os_fingerprinting::{OSDetector, OSFingerprint, format_os_info};
 pub use service_detection::{ServiceDetector, ServiceInfo, format_service_info};
+pub use udp::{UdpPortState, UdpScanResult, UdpScanner}; // Re-export UDP types
 
 #[cfg(unix)]
 pub use stealth::{PortState, StealthScanResult, StealthScanner};
@@ -75,5 +99,39 @@ mod tests {
     fn test_os_detector_creation() {
         let detector = OSDetector::new();
         drop(detector);
+    }
+
+    #[test]
+    fn test_udp_scanner_creation() {
+        let target = "127.0.0.1".parse().unwrap();
+        let scanner = UdpScanner::new(target, 3000);
+        drop(scanner);
+    }
+
+    #[test]
+    fn test_udp_common_ports() {
+        let ports = UdpScanner::get_common_udp_ports();
+        assert!(!ports.is_empty());
+        assert!(ports.contains(&53)); // DNS
+        assert!(ports.contains(&123)); // NTP
+        assert!(ports.contains(&161)); // SNMP
+    }
+
+    #[tokio::test]
+    async fn test_udp_scanning_integration() {
+        let target = "127.0.0.1".parse().unwrap();
+        let scanner = UdpScanner::new(target, 1000);
+
+        // Test scanning a common UDP port (DNS)
+        let result = scanner.scan_port(53).await;
+
+        // Should get some result (open, closed, filtered, or open|filtered)
+        assert!(matches!(
+            result.state,
+            UdpPortState::Open
+                | UdpPortState::OpenFiltered
+                | UdpPortState::Closed
+                | UdpPortState::Filtered
+        ));
     }
 }
