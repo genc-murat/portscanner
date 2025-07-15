@@ -69,7 +69,7 @@ impl OSDetector {
     }
 
     pub async fn detect_os(&mut self, target: IpAddr, open_ports: &[u16]) -> Option<OSFingerprint> {
-        println!("Performing OS detection for {}", target);
+        println!("🔍 Performing OS detection for {}", target);
 
         let characteristics = self.gather_characteristics(target, open_ports).await?;
 
@@ -161,7 +161,6 @@ impl OSDetector {
 
     async fn find_closed_port(&self, target: IpAddr) -> Option<u16> {
         let test_ports = [
-            // Very unlikely to be open
             1, 3, 4, 6, 7, 9, 13, 17, 19, 20, // Uncommon high ports
             65534, 65533, 65532, 65531, 65530, // Random ports in different ranges
             1234, 5678, 9876, 12345, 54321, // Ports that are rarely used
@@ -254,7 +253,12 @@ impl OSDetector {
         }
     }
 
-    fn match_signatures(
+    /// Match network characteristics against known OS signatures
+    ///
+    /// # Note
+    /// This method is primarily intended for internal use and testing.
+    #[doc(hidden)]
+    pub fn match_signatures(
         &self,
         characteristics: &NetworkCharacteristics,
     ) -> Vec<(f64, &OSSignature)> {
@@ -312,6 +316,7 @@ impl OSDetector {
             }
             score += feature_score;
 
+            // Closed port behavior
             if let Some(ref behavior) = characteristics.closed_port_response {
                 total_weight += 0.15;
                 if behavior == &signature.closed_port_behavior {
@@ -486,7 +491,6 @@ impl OSDetector {
     }
 }
 
-// Helper function for formatting OS information
 pub fn format_os_info(os_info: &OSFingerprint) -> String {
     let mut parts = vec![os_info.os_name.clone()];
 

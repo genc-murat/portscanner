@@ -95,13 +95,18 @@ impl ServiceDetector {
             product: None,
             os_type: None,
             device_type: None,
-            confidence: if port <= 1024 { 60 } else { 30 },
+            confidence: if port <= 1024 { 60 } else { 30 }, // Well-known ports get higher confidence
             cpe: None,
             extra_info: None,
         }
     }
 
-    fn analyze_banner(&self, port: u16, banner: &str) -> Option<ServiceInfo> {
+    /// Analyze a banner string to identify the service
+    ///
+    /// # Note
+    /// This method is primarily intended for internal use and testing.
+    #[doc(hidden)]
+    pub fn analyze_banner(&self, port: u16, banner: &str) -> Option<ServiceInfo> {
         for probe in &self.probes {
             if probe.ports.contains(&port) || probe.ports.is_empty() {
                 for service_match in &probe.matches {

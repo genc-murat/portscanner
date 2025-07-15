@@ -1,0 +1,343 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test Suite
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        rust: [stable, beta, nightly]
+        exclude:
+          # Skip nightly on Windows and macOS to speed up CI
+          - os: windows-latest
+            rust: nightly
+          - os: macos-latest
+            rust: nightly
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust }}
+        components: rustfmt, clippy
+
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+
+    - name: Cache target directory
+      uses: actions/cache@v3
+      with:
+        path: target
+        key: ${{ runner.os }}-target-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-target-${{ matrix.rust }}-
+          ${{ runner.os }}-target-
+
+    - name: Check formatting
+      run: cargo fmt --all -- --check
+      if: matrix.rust == 'stable'
+
+    - name: Run clippy
+      run: cargo clippy --all-targets --all-features -- -D warnings
+      if: matrix.rust == 'stable'
+
+    - name: Run tests
+      run: cargo test --verbose --all-features
+
+    - name: Run doc tests
+      run: cargo test --doc --all-features
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install cargo-audit
+      run: cargo install cargo-audit
+
+    - name: Run security audit
+      run: cargo audit
+
+    - name: Install cargo-deny
+      run: cargo install cargo-deny
+
+    - name: Run cargo-deny
+      run: cargo deny check
+
+  build:
+    name: Build Release
+    needs: [test, security]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: port_scanner
+            asset_name: port_scanner-linux-x86_64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            artifact_name: port_scanner
+            asset_name: port_scanner-linux-x86_64-musl
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: port_scanner.exe
+            asset_name: port_scanner-windows-x86_64.exe
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: port_scanner
+            asset_name: port_scanner-macos-x86_64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: port_scanner
+            asset_name: port_scanner-macos-aarch64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.target }}
+
+    - name: Install musl tools
+      if: matrix.target == 'x86_64-unknown-linux-musl'
+      run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache target directory
+      uses: actions/cache@v3
+      with:
+        path: target
+        key: ${{ runner.os }}-target-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Build release binary
+      run: cargo build --release --target ${{ matrix.target }}
+
+    - name: Strip binary (Unix)
+      if: matrix.os != 'windows-latest'
+      run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.asset_name }}
+        path: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+
+  benchmark:
+    name: Performance Benchmark
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Install criterion
+      run: cargo install cargo-criterion || true
+
+    - name: Run benchmarks
+      run: cargo bench --bench scan_benchmark || echo "No benchmarks found"
+
+    - name: Performance test
+      run: |
+        cargo build --release
+        echo "Testing scan performance..."
+        time timeout 30s ./target/release/port_scanner -t 127.0.0.1 -p 1-100 || true
+        echo "Performance test completed"
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: llvm-tools-preview
+
+    - name: Install grcov
+      run: cargo install grcov
+
+    - name: Run tests with coverage
+      env:
+        RUSTFLAGS: -Cinstrument-coverage
+        LLVM_PROFILE_FILE: coverage-%p-%m.profraw
+      run: cargo test --all-features
+
+    - name: Generate coverage report
+      run: |
+        grcov . \
+          --binary-path ./target/debug/ \
+          --source-dir . \
+          --output-type lcov \
+          --branch \
+          --ignore-not-existing \
+          --ignore "/*" \
+          -o coverage.lcov
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: coverage.lcov
+        flags: unittests
+        name: codecov-umbrella
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ secrets.DOCKER_USERNAME }}/port_scanner
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=sha,prefix={{branch}}-
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  release:
+    name: Create Release
+    if: github.event_name == 'release'
+    needs: [build, docker]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+
+    - name: Create release archives
+      run: |
+        # Create archives for each platform
+        for dir in */; do
+          if [ -d "$dir" ]; then
+            cd "$dir"
+            if [ -f "port_scanner.exe" ]; then
+              zip "../${dir%/}.zip" port_scanner.exe
+            else
+              tar -czf "../${dir%/}.tar.gz" port_scanner
+            fi
+            cd ..
+          fi
+        done
+
+    - name: Upload release assets
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          *.tar.gz
+          *.zip
+        body: |
+          ## Port Scanner Release ${{ github.ref_name }}
+          
+          ### Features
+          - ⚡ Fast async port scanning
+          - 🥷 Stealth SYN scan support
+          - 🔍 Advanced service detection
+          - 🖥️ OS fingerprinting
+          - 📊 JSON output support
+          
+          ### Downloads
+          - **Linux x86_64**: `port_scanner-linux-x86_64.tar.gz`
+          - **Linux x86_64 (musl)**: `port_scanner-linux-x86_64-musl.tar.gz`
+          - **Windows x86_64**: `port_scanner-windows-x86_64.zip`
+          - **macOS x86_64**: `port_scanner-macos-x86_64.tar.gz`
+          - **macOS ARM64**: `port_scanner-macos-aarch64.tar.gz`
+          
+          ### Installation
+          ```bash
+          # Download and extract
+          curl -L -o port_scanner.tar.gz https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/port_scanner-linux-x86_64.tar.gz
+          tar -xzf port_scanner.tar.gz
+          chmod +x port_scanner
+          
+          # Basic usage
+          ./port_scanner -t google.com -p 80,443
+          ```
+          
+          ### Docker
+          ```bash
+          docker run --rm ${{ secrets.DOCKER_USERNAME }}/port_scanner:${{ github.ref_name }} -t google.com -p 80,443
+          ```
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
