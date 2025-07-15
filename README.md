@@ -24,41 +24,41 @@ A fast, modern port scanner written in Rust with async networking, stealth SYN s
 ```bash
 # Clone the repository
 git clone https://github.com/genc-murat/portscanner.git
-cd port_scanner
+cd portscanner
 
 # Build the project
 cargo build --release
 
 # Run a basic TCP scan
-./target/release/port_scanner -t google.com -p 80,443
+./target/release/portscanner -t google.com -p 80,443
 
 # Run with service detection
-./target/release/port_scanner -t 192.168.1.1 -p 1-1000 --service-detection
+./target/release/portscanner -t 192.168.1.1 -p 1-1000 --service-detection
 
 # Run with OS fingerprinting
-./target/release/port_scanner -t 192.168.1.1 -p 22,80,443 -O
+./target/release/portscanner -t 192.168.1.1 -p 22,80,443 -O
 
 # Run aggressive scan (everything enabled)
-./target/release/port_scanner -t 192.168.1.1 -p 1-1000 -A
+./target/release/portscanner -t 192.168.1.1 -p 1-1000 -A
 
 # Run stealth SYN scan (requires root)
-sudo ./target/release/port_scanner -t 192.168.1.1 -s
+sudo ./target/release/portscanner -t 192.168.1.1 -s
 ```
 
 ### Basic Usage
 
 ```bash
 # Scan common ports on a target
-port_scanner -t 192.168.1.1
+portscanner -t 192.168.1.1
 
 # Scan specific ports with banner grabbing
-port_scanner -t example.com -p 22,80,443 -b
+portscanner -t example.com -p 22,80,443 -b
 
 # Scan port range with high concurrency
-port_scanner -t 192.168.1.1 -p 1-1000 -c 200
+portscanner -t 192.168.1.1 -p 1-1000 -c 200
 
 # Export results to JSON
-port_scanner -t target.com -p 80,443 -b -j > results.json
+portscanner -t target.com -p 80,443 -b -j > results.json
 ```
 
 ## Usage
@@ -67,7 +67,7 @@ port_scanner -t target.com -p 80,443 -b -j > results.json
 Port Scanner v0.4.0
 
 USAGE:
-    port_scanner [OPTIONS] --target <TARGET>
+    portscanner [OPTIONS] --target <TARGET>
 
 OPTIONS:
     -t, --target <TARGET>           Target IP address or hostname
@@ -91,48 +91,48 @@ OPTIONS:
 
 ```bash
 # Scan default port range (1-1000)
-port_scanner -t 192.168.1.1
+portscanner -t 192.168.1.1
 
 # Scan specific ports
-port_scanner -t google.com -p 80,443,22
+portscanner -t google.com -p 80,443,22
 
 # Scan port ranges
-port_scanner -t 192.168.1.1 -p 1-100
+portscanner -t 192.168.1.1 -p 1-100
 
 # Mixed port specification
-port_scanner -t example.com -p 22,80-90,443,8080-8090
+portscanner -t example.com -p 22,80-90,443,8080-8090
 ```
 
 ### Advanced Scanning
 
 ```bash
 # High-speed scanning with increased concurrency
-port_scanner -t 192.168.1.1 -p 1-65535 -c 500
+portscanner -t 192.168.1.1 -p 1-65535 -c 500
 
 # Banner grabbing for service identification
-port_scanner -t 192.168.1.1 -p 21,22,80,443 -b
+portscanner -t 192.168.1.1 -p 21,22,80,443 -b
 
 # Custom timeout for slow networks
-port_scanner -t slow-server.com -p 1-1000 -T 5000
+portscanner -t slow-server.com -p 1-1000 -T 5000
 
 # JSON output for automation
-port_scanner -t target.com -p 80,443 -b -j | jq '.[] | select(.is_open)'
+portscanner -t target.com -p 80,443 -b -j | jq '.[] | select(.is_open)'
 ```
 
 ### Real-world Examples
 
 ```bash
 # Web server reconnaissance
-port_scanner -t example.com -p 80,443,8080,8443,8000,9000 -b
+portscanner -t example.com -p 80,443,8080,8443,8000,9000 -b
 
 # Database server discovery
-port_scanner -t db-server.local -p 3306,5432,1433,27017,6379 -b
+portscanner -t db-server.local -p 3306,5432,1433,27017,6379 -b
 
 # Network infrastructure scan
-port_scanner -t 192.168.1.1 -p 21,22,23,53,80,443,161,162 -b
+portscanner -t 192.168.1.1 -p 21,22,23,53,80,443,161,162 -b
 
 # Development environment scan
-port_scanner -t localhost -p 3000,4000,5000,8000,8080,9000 -b
+portscanner -t localhost -p 3000,4000,5000,8000,8080,9000 -b
 ```
 
 ## Sample Output
@@ -234,7 +234,7 @@ libc = "0.2"
 ```bash
 # Clone the repository
 git clone https://github.com/genc-murat/portscanner.git
-cd port_scanner
+cd portscanner
 
 # Build in debug mode
 cargo build
@@ -261,13 +261,13 @@ cargo run -- -t google.com -p 80,443
 
 ```bash
 # For local networks (fast)
-port_scanner -t 192.168.1.1 -p 1-1000 -c 300 -T 1000
+portscanner -t 192.168.1.1 -p 1-1000 -c 300 -T 1000
 
 # For internet hosts (moderate)
-port_scanner -t example.com -p 1-1000 -c 100 -T 3000
+portscanner -t example.com -p 1-1000 -c 100 -T 3000
 
 # For slow/filtered networks (conservative)
-port_scanner -t target.com -p 80,443 -c 50 -T 10000
+portscanner -t target.com -p 80,443 -c 50 -T 10000
 ```
 
 ## Supported Detection
@@ -297,7 +297,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 ```bash
 # Fork and clone the repo
 git clone https://github.com/genc-murat/portscanner.git
-cd port_scanner
+cd portscanner
 
 # Create a feature branch
 git checkout -b feature/awesome-feature
