@@ -7,19 +7,19 @@ pub fn parse_ports(port_str: &str) -> Result<Vec<u16>, String> {
         if part.contains('-') {
             let range: Vec<&str> = part.split('-').collect();
             if range.len() != 2 {
-                return Err(format!("Geçersiz port aralığı: {}", part));
+                return Err(format!("Invalid port range: {}", part));
             }
 
             let start: u16 = range[0]
                 .parse()
-                .map_err(|_| format!("Geçersiz port: {}", range[0]))?;
+                .map_err(|_| format!("Invalid port: {}", range[0]))?;
             let end: u16 = range[1]
                 .parse()
-                .map_err(|_| format!("Geçersiz port: {}", range[1]))?;
+                .map_err(|_| format!("Invalid port: {}", range[1]))?;
 
             if start > end {
                 return Err(format!(
-                    "Başlangıç portu bitiş portundan büyük: {}-{}",
+                    "Start port is greater than end port: {}-{}",
                     start, end
                 ));
             }
@@ -30,7 +30,7 @@ pub fn parse_ports(port_str: &str) -> Result<Vec<u16>, String> {
         } else {
             let port: u16 = part
                 .parse()
-                .map_err(|_| format!("Geçersiz port: {}", part))?;
+                .map_err(|_| format!("Invalid port: {}", part))?;
             ports.insert(port);
         }
     }
