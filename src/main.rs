@@ -1,15 +1,16 @@
+mod html_generator;
 mod os_fingerprinting;
 mod port_parser;
 mod scanner;
 mod service_detection;
-mod ssl; // Add SSL module
+mod ssl;
 mod stealth;
 mod udp;
 
 use clap::{Arg, Command};
 use scanner::PortScanner;
 use std::net::IpAddr;
-use udp::UdpScanner; // Import to use get_common_udp_ports
+use udp::UdpScanner;
 
 pub struct Args {
     pub target: String,
@@ -17,21 +18,22 @@ pub struct Args {
     pub concurrency: usize,
     pub timeout: u64,
     pub json: bool,
+    pub html_output: Option<String>,
     pub banner: bool,
     pub stealth: bool,
     pub scan_type: String,
     pub protocol: Option<String>,
     pub service_detection: bool,
     pub os_detection: bool,
-    pub ssl_analysis: bool, // Add SSL analysis flag
+    pub ssl_analysis: bool,
     pub aggressive: bool,
 }
 
 #[tokio::main]
 async fn main() {
     let matches = Command::new("portscanner")
-        .version("0.4.0")
-        .about("A fast, modern port scanner with IPv4/IPv6 dual-stack support, TCP/UDP scanning, advanced service detection, and OS fingerprinting")
+        .version("0.4.0") 
+        .about("A fast, modern port scanner with IPv4/IPv6 dual-stack support, TCP/UDP scanning, advanced service detection, OS fingerprinting, and HTML reports")
         .arg(
             Arg::new("target")
                 .short('t')
@@ -78,6 +80,12 @@ async fn main() {
                 .long("json")
                 .help("Output results in JSON format")
                 .action(clap::ArgAction::SetTrue)
+        )
+        .arg(
+            Arg::new("html") // New HTML argument
+                .long("html")
+                .value_name("FILENAME")
+                .help("Output results in an HTML file")
         )
         .arg(
             Arg::new("banner")
@@ -170,12 +178,13 @@ async fn main() {
             .parse()
             .unwrap_or(3000),
         json: matches.get_flag("json"),
+        html_output: matches.get_one::<String>("html").cloned(), // Get HTML filename
         banner: matches.get_flag("banner"),
         stealth: matches.get_flag("stealth"),
         scan_type: matches.get_one::<String>("scan_type").unwrap().clone(),
         service_detection: matches.get_flag("service_detection"),
         os_detection: matches.get_flag("os_detection"),
-        ssl_analysis: matches.get_flag("ssl_analysis"), // Add SSL analysis flag
+        ssl_analysis: matches.get_flag("ssl_analysis"),
         aggressive: matches.get_flag("aggressive"),
     };
 

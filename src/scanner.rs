@@ -1,3 +1,4 @@
+use crate::html_generator::write_html_report;
 use crate::os_fingerprinting::{format_os_info, OSDetector, OSFingerprint};
 use crate::service_detection::{format_service_info, ServiceDetector, ServiceInfo};
 use crate::ssl::{format_ssl_analysis, SslAnalysisResult, SslAnalyzer};
@@ -67,6 +68,7 @@ pub struct PortScanner {
     concurrency: usize,
     timeout_ms: u64,
     json_output: bool,
+    html_output: Option<String>,
     grab_banner: bool,
     scan_type: ScanType,
     protocol: Protocol,
@@ -114,6 +116,7 @@ impl PortScanner {
             concurrency: args.concurrency,
             timeout_ms: args.timeout,
             json_output: args.json,
+            html_output: args.html_output,
             grab_banner: args.banner && !args.stealth,
             scan_type,
             protocol,
@@ -405,6 +408,14 @@ impl PortScanner {
                 "{}",
                 serde_json::to_string_pretty(&complete_result).unwrap()
             );
+            return;
+        }
+
+        if let Some(filename) = &self.html_output {
+            match write_html_report(&complete_result, filename) {
+                Ok(_) => println!("Successfully saved HTML report to {}", filename),
+                Err(e) => eprintln!("Error writing HTML report: {}", e),
+            }
             return;
         }
 
