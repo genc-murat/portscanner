@@ -1,18 +1,17 @@
+# Modern cargo-deny configuration
 [graph]
 # All of the available features for the crate we're building
 all-features = true
 
 [advisories]
 # The path where the advisory database is cloned/fetched into
-db-path = "~/.cargo/advisory-db"
+db-path = "~/.cargo/advisory-dbs"
 # The url(s) of the advisory databases to use
 db-urls = ["https://github.com/rustsec/advisory-db"]
-# The lint level for security vulnerabilities
-vulnerability = "deny"
 # The lint level for crates that have been yanked from their source registry
 yanked = "warn"
-# The lint level for crates with security notices
-notice = "warn"
+# Controls how unmaintained advisories are handled
+unmaintained = "all"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
@@ -22,12 +21,6 @@ ignore = [
 [licenses]
 # The confidence threshold for detecting a license from a license text
 confidence-threshold = 0.8
-# The lint level for when a license requirement is not met
-unlicensed = "deny"
-# The lint level for copyleft licenses
-copyleft = "warn"
-# Blanket approval or denial for OSI-approved or FSF Free/Libre licenses
-allow-osi-fsf-free = "both"
 # List of explicitly allowed licenses
 allow = [
     "MIT",
@@ -38,8 +31,8 @@ allow = [
     "ISC",
     "Unicode-DFS-2016",
 ]
-# List of explicitly disallowed licenses
-deny = ["GPL-2.0", "GPL-3.0", "AGPL-1.0", "AGPL-3.0"]
+# Handle unused licenses
+unused-allowed-license = "warn"
 
 [bans]
 # Lint level for when multiple versions of the same crate are detected
