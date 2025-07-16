@@ -147,6 +147,26 @@ mod tests {
     }
 
     #[test]
+    fn test_os_info_formatting() {
+        // This test should create an OS fingerprint that is detected as a server
+        let os_info = OSFingerprint::new("Linux".to_string(), "Ubuntu Server".to_string(), 95)
+            .with_version("20.04".to_string())
+            .with_device_type("Server".to_string())
+            .with_details(vec![
+                "TTL: 64".to_string(),
+                "Window Size: 29200".to_string(),
+            ]);
+
+        let formatted = format_os_info(&os_info);
+        assert!(formatted.contains("Ubuntu Server"));
+        assert!(formatted.contains("20.04"));
+        assert!(formatted.contains("Server"));
+        assert!(!formatted.contains("confidence")); // High confidence shouldn't show
+        assert!(os_info.is_high_confidence());
+        assert!(os_info.is_server()); // This is the assertion that was failing
+    }
+
+    #[test]
     fn test_os_info_formatting_low_confidence() {
         let os_info = OSFingerprint::new("Linux".to_string(), "Unknown Linux".to_string(), 45)
             .with_details(vec!["TTL: 64".to_string()]);
