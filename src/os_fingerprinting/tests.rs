@@ -129,13 +129,10 @@ mod tests {
     }
 
     #[test]
-    fn test_os_info_formatting() {
+    fn test_os_info_formatting_high_confidence() {
         let os_info = OSFingerprint::new("Linux".to_string(), "Ubuntu Linux".to_string(), 95)
             .with_version("20.04".to_string())
-            .with_device_type("Server".to_string())
-            .with_cpe("cpe:/o:canonical:ubuntu_linux:20.04".to_string())
-            .with_vendor("Canonical".to_string())
-            .with_architecture("x86_64".to_string())
+            .with_device_type("Desktop".to_string())
             .with_details(vec![
                 "TTL: 64".to_string(),
                 "Window Size: 29200".to_string(),
@@ -144,12 +141,9 @@ mod tests {
         let formatted = format_os_info(&os_info);
         assert!(formatted.contains("Ubuntu Linux"));
         assert!(formatted.contains("20.04"));
-        assert!(formatted.contains("Server"));
+        assert!(formatted.contains("Desktop"));
         assert!(!formatted.contains("confidence")); // High confidence shouldn't show
         assert!(os_info.is_high_confidence());
-        assert!(os_info.is_server());
-        assert!(!os_info.is_mobile());
-        assert!(!os_info.is_network_device());
     }
 
     #[test]
@@ -162,6 +156,57 @@ mod tests {
         assert!(formatted.contains("45% confidence")); // Low confidence should show
         assert!(!os_info.is_high_confidence());
         assert_eq!(os_info.confidence_text(), "Low");
+    }
+
+    #[test]
+    fn test_server_detection() {
+        // Test with explicit "Server" in name
+        let ubuntu_server =
+            OSFingerprint::new("Linux".to_string(), "Ubuntu Server".to_string(), 90);
+        assert!(ubuntu_server.is_server());
+
+        // Test with Windows Server
+        let windows_server =
+            OSFingerprint::new("Windows".to_string(), "Windows Server 2019".to_string(), 92);
+        assert!(windows_server.is_server());
+
+        // Test with CentOS (should be detected as server)
+        let centos = OSFingerprint::new("Linux".to_string(), "CentOS 8".to_string(), 88);
+        assert!(centos.is_server());
+
+        // Test desktop Linux (should NOT be server)
+        let ubuntu_desktop =
+            OSFingerprint::new("Linux".to_string(), "Ubuntu Linux".to_string(), 85);
+        assert!(!ubuntu_desktop.is_server());
+    }
+
+    #[test]
+    fn test_mobile_os_detection() {
+        let android_info =
+            OSFingerprint::new("Android".to_string(), "Google Android".to_string(), 85)
+                .with_version("12".to_string())
+                .with_device_type("Mobile Device".to_string());
+
+        assert!(android_info.is_mobile());
+        assert!(!android_info.is_server());
+        assert!(!android_info.is_network_device());
+
+        let ios_info = OSFingerprint::new("iOS".to_string(), "Apple iOS".to_string(), 88)
+            .with_version("15.0".to_string());
+
+        assert!(ios_info.is_mobile());
+        assert!(!ios_info.is_server());
+    }
+
+    #[test]
+    fn test_network_device_detection() {
+        let cisco_info = OSFingerprint::new("Cisco IOS".to_string(), "Cisco IOS".to_string(), 92)
+            .with_device_type("Network Device".to_string())
+            .with_vendor("Cisco".to_string());
+
+        assert!(cisco_info.is_network_device());
+        assert!(!cisco_info.is_server());
+        assert!(!cisco_info.is_mobile());
     }
 
     #[test]
