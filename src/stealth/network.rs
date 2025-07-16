@@ -89,7 +89,7 @@ impl RawSocketManager {
         match target {
             IpAddr::V4(ipv4) => {
                 let mut addr: sockaddr_in = unsafe { mem::zeroed() };
-                addr.sin_family = AF_INET as u16;
+                addr.sin_family = AF_INET as libc::sa_family_t;
                 addr.sin_port = port.to_be();
                 addr.sin_addr.s_addr = u32::from(ipv4).to_be();
 
@@ -106,7 +106,7 @@ impl RawSocketManager {
             }
             IpAddr::V6(ipv6) => {
                 let mut addr: sockaddr_in6 = unsafe { mem::zeroed() };
-                addr.sin6_family = AF_INET6 as u16;
+                addr.sin6_family = AF_INET6 as libc::sa_family_t;
                 addr.sin6_port = port.to_be();
                 addr.sin6_addr.s6_addr = ipv6.octets();
 
