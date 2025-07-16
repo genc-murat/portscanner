@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::net::IpAddr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
-use tokio::time::{Duration, timeout};
+use tokio::time::{timeout, Duration};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceInfo {
@@ -245,49 +245,51 @@ impl ServiceDetector {
     fn load_builtin_probes(&mut self) {
         // HTTP probe
         self.probes.push(ServiceProbe {
-            name: "HTTP".to_string(),
-            probe_string: b"GET / HTTP/1.1\r\nHost: localhost\r\nUser-Agent: ServiceDetector/1.0\r\nConnection: close\r\n\r\n".to_vec(),
-            matches: vec![
-                ServiceMatch {
-                    regex: Regex::new(r"Server:\s*([^\r\n]+)").unwrap(),
-                    service: "http".to_string(),
-                    version_info: None,
-                    product_info: Some("$1".to_string()),
-                    os_info: None,
-                    device_info: None,
-                    cpe: None,
-                },
-                ServiceMatch {
-                    regex: Regex::new(r"Apache/(\d+\.\d+\.\d+)").unwrap(),
-                    service: "http".to_string(),
-                    version_info: Some("$1".to_string()),
-                    product_info: Some("Apache httpd".to_string()),
-                    os_info: None,
-                    device_info: None,
-                    cpe: Some("cpe:/a:apache:http_server:$1".to_string()),
-                },
-                ServiceMatch {
-                    regex: Regex::new(r"nginx/(\d+\.\d+\.\d+)").unwrap(),
-                    service: "http".to_string(),
-                    version_info: Some("$1".to_string()),
-                    product_info: Some("nginx".to_string()),
-                    os_info: None,
-                    device_info: None,
-                    cpe: Some("cpe:/a:nginx:nginx:$1".to_string()),
-                },
-                ServiceMatch {
-                    regex: Regex::new(r"Microsoft-IIS/(\d+\.\d+)").unwrap(),
-                    service: "http".to_string(),
-                    version_info: Some("$1".to_string()),
-                    product_info: Some("Microsoft IIS httpd".to_string()),
-                    os_info: Some("Windows".to_string()),
-                    device_info: None,
-                    cpe: Some("cpe:/a:microsoft:iis:$1".to_string()),
-                },
-            ],
-            ports: vec![80, 8000, 8080, 8081, 8443, 8888, 9000, 9080, 9090],
-            ssl_ports: vec![443, 8443, 9443],
-        });
+    name: "HTTP".to_string(),
+    probe_string: b"GET / HTTP/1.1\r\nHost: localhost\r\nUser-Agent: ServiceDetector/1.0\r\nConnection: close\r\n\r\n".to_vec(),
+    matches: vec![
+        // More specific patterns first
+        ServiceMatch {
+            regex: Regex::new(r"Apache/(\d+\.\d+\.\d+)").unwrap(),
+            service: "http".to_string(),
+            version_info: Some("$1".to_string()),
+            product_info: Some("Apache httpd".to_string()),
+            os_info: None,
+            device_info: None,
+            cpe: Some("cpe:/a:apache:http_server:$1".to_string()),
+        },
+        ServiceMatch {
+            regex: Regex::new(r"nginx/(\d+\.\d+\.\d+)").unwrap(),
+            service: "http".to_string(),
+            version_info: Some("$1".to_string()),
+            product_info: Some("nginx".to_string()),
+            os_info: None,
+            device_info: None,
+            cpe: Some("cpe:/a:nginx:nginx:$1".to_string()),
+        },
+        ServiceMatch {
+            regex: Regex::new(r"Microsoft-IIS/(\d+\.\d+)").unwrap(),
+            service: "http".to_string(),
+            version_info: Some("$1".to_string()),
+            product_info: Some("Microsoft IIS httpd".to_string()),
+            os_info: Some("Windows".to_string()),
+            device_info: None,
+            cpe: Some("cpe:/a:microsoft:iis:$1".to_string()),
+        },
+        // General pattern last
+        ServiceMatch {
+            regex: Regex::new(r"Server:\s*([^\r\n]+)").unwrap(),
+            service: "http".to_string(),
+            version_info: None,
+            product_info: Some("$1".to_string()),
+            os_info: None,
+            device_info: None,
+            cpe: None,
+        },
+    ],
+    ports: vec![80, 8000, 8080, 8081, 8443, 8888, 9000, 9080, 9090],
+    ssl_ports: vec![443, 8443, 9443],
+});
 
         // SSH probe
         self.probes.push(ServiceProbe {
