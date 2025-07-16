@@ -159,28 +159,158 @@ impl SslAnalyzer {
     }
 
     async fn check_ssl_availability(&self, target: IpAddr, port: u16) -> bool {
-        let socket_addr = SocketAddr::new(target, port);
-        
-        match timeout(Duration::from_millis(self.timeout_ms), TcpStream::connect(socket_addr)).await {
-            Ok(Ok(mut stream)) => {
-                // Send TLS 1.2 ClientHello
-                let client_hello = self.build_tls12_client_hello();
-                if stream.write_all(&client_hello).await.is_ok() {
-                    let mut buffer = [0u8; 1024];
-                    match timeout(Duration::from_millis(self.timeout_ms), stream.read(&mut buffer)).await {
-                        Ok(Ok(n)) if n >= 5 => {
-                            // Check for TLS handshake response
-                            buffer[0] == 0x16 && buffer[1] == 0x03 // TLS handshake
-                        }
-                        _ => false,
-                    }
-                } else {
-                    false
-                }
+    // Önce normal TCP bağlantısı dene
+    let socket_addr = SocketAddr::new(target, port);
+    
+    match timeout(Duration::from_millis(self.timeout_ms), TcpStream::connect(socket_addr)).await {
+        Ok(Ok(mut stream)) => {
+            // Yöntem 1: TLS handshake dene
+            if self.try_tls_handshake(&mut stream).await {
+                return true;
             }
-            _ => false,
+            
+            // Yöntem 2: HTTP over TLS dene (HTTPS)
+            if self.try_https_probe(&mut stream).await {
+                return true;
+            }
+            
+            // Yöntem 3: Port bazlı tahmin
+            self.is_common_ssl_port(port)
         }
+        _ => false,
     }
+}
+
+fn build_proper_tls12_client_hello(&self) -> Vec<u8> {
+    let mut packet = Vec::new();
+    
+    // TLS Record Header
+    packet.push(0x16); // Content Type: Handshake
+    packet.extend(&[0x03, 0x03]); // Version: TLS 1.2
+    
+    // Handshake message
+    let mut handshake = Vec::new();
+    handshake.push(0x01); // Handshake Type: Client Hello
+    
+    let mut client_hello = Vec::new();
+    client_hello.extend(&[0x03, 0x03]); // Version: TLS 1.2
+    
+    // Random (32 bytes)
+    client_hello.extend(&[
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
+        0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
+        0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20,
+    ]);
+    
+    // Session ID Length
+    client_hello.push(0x00);
+    
+    // Cipher Suites (daha kapsamlı liste)
+    let cipher_suites = vec![
+        0xC0, 0x30, // TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        0xC0, 0x2F, // TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        0xC0, 0x14, // TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+        0xC0, 0x13, // TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+        0x00, 0x39, // TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+        0x00, 0x33, // TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+        0x00, 0x35, // TLS_RSA_WITH_AES_256_CBC_SHA
+        0x00, 0x2F, // TLS_RSA_WITH_AES_128_CBC_SHA
+    ];
+    
+    client_hello.extend(&[(cipher_suites.len() as u16).to_be_bytes()[0], 
+                          (cipher_suites.len() as u16).to_be_bytes()[1]]);
+    client_hello.extend(&cipher_suites);
+    
+    // Compression Methods
+    client_hello.push(0x01); // Length
+    client_hello.push(0x00); // No compression
+    
+    // Extensions (SNI ekle)
+    let mut extensions = Vec::new();
+    
+    // Server Name Indication (SNI)
+    extensions.extend(&[0x00, 0x00]); // Extension type: server_name
+    let server_name = "localhost";
+    let sni_length = 5 + server_name.len();
+    extensions.extend(&[(sni_length as u16).to_be_bytes()[0], 
+                       (sni_length as u16).to_be_bytes()[1]]);
+    extensions.extend(&[(sni_length as u16 - 2).to_be_bytes()[0], 
+                       (sni_length as u16 - 2).to_be_bytes()[1]]);
+    extensions.push(0x00); // Name type: host_name
+    extensions.extend(&[(server_name.len() as u16).to_be_bytes()[0], 
+                       (server_name.len() as u16).to_be_bytes()[1]]);
+    extensions.extend(server_name.as_bytes());
+    
+    // Extensions length
+    client_hello.extend(&[(extensions.len() as u16).to_be_bytes()[0], 
+                         (extensions.len() as u16).to_be_bytes()[1]]);
+    client_hello.extend(&extensions);
+    
+    // Handshake message length
+    handshake.extend(&[0x00, 0x00, 0x00]); // Placeholder for length
+    let length = client_hello.len() as u32;
+    handshake[1] = ((length >> 16) & 0xFF) as u8;
+    handshake[2] = ((length >> 8) & 0xFF) as u8;
+    handshake[3] = (length & 0xFF) as u8;
+    handshake.extend(&client_hello);
+    
+    // Record length
+    packet.extend(&[(handshake.len() as u16).to_be_bytes()[0], 
+                    (handshake.len() as u16).to_be_bytes()[1]]);
+    packet.extend(&handshake);
+    
+    packet
+}
+
+async fn try_tls_handshake(&self, stream: &mut TcpStream) -> bool {
+    // Daha kapsamlı TLS 1.2 ClientHello gönder
+    let client_hello = self.build_proper_tls12_client_hello();
+    
+    if stream.write_all(&client_hello).await.is_err() {
+        return false;
+    }
+    
+    let mut buffer = [0u8; 1024];
+    match timeout(Duration::from_millis(self.timeout_ms), stream.read(&mut buffer)).await {
+        Ok(Ok(n)) if n >= 5 => {
+            // TLS handshake response kontrolü
+            buffer[0] == 0x16 && // Handshake
+            buffer[1] == 0x03 && // TLS version major
+            (buffer[2] == 0x01 || buffer[2] == 0x02 || buffer[2] == 0x03 || buffer[2] == 0x04) && // TLS minor versions
+            buffer[5] == 0x02 // ServerHello
+        }
+        _ => false,
+    }
+}
+
+async fn try_https_probe(&self, stream: &mut TcpStream) -> bool {
+    // HTTP request gönder ve SSL/TLS error bekle
+    let http_request = b"GET / HTTP/1.1\r\nHost: test\r\nConnection: close\r\n\r\n";
+    
+    if stream.write_all(http_request).await.is_err() {
+        return false;
+    }
+    
+    let mut buffer = [0u8; 512];
+    match timeout(Duration::from_millis(self.timeout_ms), stream.read(&mut buffer)).await {
+        Ok(Ok(n)) if n > 0 => {
+            let response = String::from_utf8_lossy(&buffer[..n]);
+            // SSL/TLS error mesajları ara
+            response.contains("SSL") || 
+            response.contains("TLS") ||
+            response.contains("certificate") ||
+            response.contains("handshake") ||
+            buffer[0] == 0x15 // TLS Alert
+        }
+        _ => false,
+    }
+}
+
+fn is_common_ssl_port(&self, port: u16) -> bool {
+    matches!(port, 443 | 465 | 587 | 993 | 995 | 636 | 853 | 990 | 992 | 
+             1443 | 2376 | 3269 | 5061 | 5986 | 8443 | 8834 | 9443 | 10443)
+}
 
     async fn get_certificate_info(&self, target: IpAddr, port: u16, hostname: Option<&str>) -> Option<CertificateInfo> {
         // Mock certificate info - in production, use proper TLS library
@@ -596,7 +726,7 @@ impl SslAnalyzer {
 pub fn format_ssl_analysis(analysis: &SslAnalysisResult) -> String {
     let mut result = String::new();
     
-    result.push_str(&format!("\n🔒 SSL/TLS Analysis for {}:{}\n", analysis.target, analysis.port));
+    result.push_str(&format!("\n SSL/TLS Analysis for {}:{}\n", analysis.target, analysis.port));
     result.push_str(&"=".repeat(60));
     result.push('\n');
 
