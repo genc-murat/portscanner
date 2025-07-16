@@ -31,9 +31,9 @@
 //! ## Example
 //!
 //! ```rust,no_run
-//! use port_scanner::port_parser::parse_ports;
-//! use port_scanner::service_detection::ServiceDetector;
-//! use port_scanner::udp::UdpScanner;
+//! use portscanner::port_parser::parse_ports;
+//! use portscanner::service_detection::ServiceDetector;
+//! use portscanner::udp::UdpScanner;
 //!
 //! // Parse port ranges
 //! let ports = parse_ports("22,80,443,8000-9000").unwrap();
