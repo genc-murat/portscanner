@@ -19,10 +19,16 @@ pub struct RawSocketManager {
 
 impl std::fmt::Debug for RawSocketManager {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("RawSocketManager")
-            .field("target", &self.target)
-            .field("has_socket", &self.socket_fd.is_some())
-            .finish()
+        let mut debug_struct = f.debug_struct("RawSocketManager");
+        debug_struct.field("target", &self.target);
+
+        #[cfg(unix)]
+        debug_struct.field("has_socket", &self.socket_fd.is_some());
+
+        #[cfg(not(unix))]
+        debug_struct.field("platform", &"not_unix");
+
+        debug_struct.finish()
     }
 }
 
