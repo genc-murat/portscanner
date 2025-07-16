@@ -8,6 +8,7 @@ mod udp;
 
 use clap::{Arg, Command};
 use scanner::PortScanner;
+use std::net::IpAddr;
 use udp::UdpScanner; // Import to use get_common_udp_ports
 
 pub struct Args {
@@ -30,13 +31,13 @@ pub struct Args {
 async fn main() {
     let matches = Command::new("portscanner")
         .version("0.4.0")
-        .about("A fast, modern port scanner with TCP/UDP support, advanced service detection and OS fingerprinting")
+        .about("A fast, modern port scanner with IPv4/IPv6 dual-stack support, TCP/UDP scanning, advanced service detection, and OS fingerprinting")
         .arg(
             Arg::new("target")
                 .short('t')
                 .long("target")
                 .value_name("TARGET")
-                .help("Target IP address or hostname")
+                .help("Target IPv4/IPv6 address or hostname (e.g., 192.168.1.1, 2001:db8::1, example.com)")
                 .required(true)
         )
         .arg(
@@ -51,7 +52,7 @@ async fn main() {
             Arg::new("protocol")
                 .long("protocol")
                 .value_name("PROTOCOL")
-                .help("Protocol to scan: tcp, udp, or both")
+                .help("Protocol to scan: tcp, udp, or both (works with IPv4 and IPv6)")
                 .default_value("tcp")
                 .value_parser(["tcp", "udp", "both", "all"])
         )
@@ -68,7 +69,7 @@ async fn main() {
                 .short('T')
                 .long("timeout")
                 .value_name("MS")
-                .help("Connection timeout in milliseconds")
+                .help("Connection timeout in milliseconds (IPv6 may require higher values)")
                 .default_value("3000")
         )
         .arg(
@@ -82,14 +83,14 @@ async fn main() {
             Arg::new("banner")
                 .short('b')
                 .long("banner")
-                .help("Enable banner grabbing (TCP only)")
+                .help("Enable banner grabbing (TCP only, works with IPv4/IPv6)")
                 .action(clap::ArgAction::SetTrue)
         )
         .arg(
             Arg::new("stealth")
                 .short('s')
                 .long("stealth")
-                .help("Use stealth SYN scan for TCP (requires root/admin privileges)")
+                .help("Use stealth SYN scan for TCP (requires root/admin privileges, supports IPv4/IPv6)")
                 .action(clap::ArgAction::SetTrue)
         )
         .arg(
@@ -103,20 +104,20 @@ async fn main() {
         .arg(
             Arg::new("service_detection")
                 .long("service-detection")
-                .help("Enable advanced service detection")
+                .help("Enable advanced service detection (IPv4/IPv6)")
                 .action(clap::ArgAction::SetTrue)
         )
         .arg(
             Arg::new("os_detection")
                 .short('O')
                 .long("os-detection")
-                .help("Enable OS fingerprinting (TCP only)")
+                .help("Enable OS fingerprinting (TCP only, IPv4/IPv6)")
                 .action(clap::ArgAction::SetTrue)
         )
         .arg(
             Arg::new("ssl_analysis")
                 .long("ssl-analysis")
-                .help("Enable SSL/TLS analysis for HTTPS and other SSL services")
+                .help("Enable SSL/TLS analysis for HTTPS and other SSL services (IPv4/IPv6)")
                 .action(clap::ArgAction::SetTrue)
         )
         .arg(
@@ -139,6 +140,18 @@ async fn main() {
                 .value_name("NUM")
                 .help("Scan top N most common ports for the selected protocol(s)")
                 .value_parser(clap::value_parser!(u16))
+        )
+        .arg(
+            Arg::new("ipv6_only")
+                .long("ipv6-only")
+                .help("Force IPv6 resolution for hostnames (ignore IPv4 A records)")
+                .action(clap::ArgAction::SetTrue)
+        )
+        .arg(
+            Arg::new("ipv4_only")
+                .long("ipv4-only")
+                .help("Force IPv4 resolution for hostnames (ignore IPv6 AAAA records)")
+                .action(clap::ArgAction::SetTrue)
         )
         .get_matches();
 
@@ -166,6 +179,32 @@ async fn main() {
         aggressive: matches.get_flag("aggressive"),
     };
 
+    // IPv6/IPv4 resolution preferences
+    let ipv6_only = matches.get_flag("ipv6_only");
+    let ipv4_only = matches.get_flag("ipv4_only");
+
+    if ipv6_only && ipv4_only {
+        eprintln!("Error: Cannot specify both --ipv6-only and --ipv4-only");
+        std::process::exit(1);
+    }
+
+    // Validate and normalize target address
+    let target_info = validate_and_resolve_target(&args.target, ipv4_only, ipv6_only).await;
+    match target_info {
+        Ok((resolved_target, ip_version)) => {
+            args.target = resolved_target;
+            if !args.json {
+                if let Some(version) = ip_version {
+                    println!("Target IP version: {}", version);
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Error resolving target: {}", e);
+            std::process::exit(1);
+        }
+    }
+
     // Handle special port options
     if matches.get_flag("udp_common") {
         args.protocol = Some("udp".to_string());
@@ -175,12 +214,16 @@ async fn main() {
             .map(|p| p.to_string())
             .collect::<Vec<String>>()
             .join(",");
-        println!("UDP common ports mode enabled");
+        if !args.json {
+            println!("UDP common ports mode enabled");
+        }
     }
 
     if let Some(top_n) = matches.get_one::<u16>("top_ports") {
         args.ports = get_top_ports(*top_n, &args.protocol.as_deref().unwrap_or("tcp"));
-        println!("Scanning top {} ports", top_n);
+        if !args.json {
+            println!("Scanning top {} ports", top_n);
+        }
     }
 
     if args.aggressive {
@@ -188,7 +231,9 @@ async fn main() {
         args.banner = true;
         args.os_detection = true;
         args.ssl_analysis = true; // Include SSL analysis in aggressive mode
-        println!("Aggressive mode enabled (service detection + banner grabbing + OS detection + SSL analysis)");
+        if !args.json {
+            println!("Aggressive mode enabled (service detection + banner grabbing + OS detection + SSL analysis)");
+        }
     }
 
     // Validate protocol combinations
@@ -207,44 +252,86 @@ async fn main() {
         args.os_detection = false;
     }
 
-    println!("Port Scanner v0.4.0");
-    println!("Target: {}", args.target);
-    println!("Ports: {}", args.ports);
-    println!("Protocol(s): {}", args.protocol.as_deref().unwrap_or("tcp"));
-    println!("Concurrent connections: {}", args.concurrency);
-    println!("Timeout: {}ms", args.timeout);
+    // IPv6-specific warnings and recommendations
+    if is_ipv6_target(&args.target) {
+        if args.stealth && !is_root() {
+            eprintln!("Note: IPv6 stealth SYN scan requires root privileges");
+        }
 
-    if args.stealth {
-        println!("Stealth SYN scan enabled");
-        #[cfg(not(target_os = "linux"))]
-        println!("Warning: SYN scan not fully supported on this OS, falling back to TCP connect");
-        #[cfg(target_os = "linux")]
-        println!("Note: SYN scan requires root privileges");
+        if args.timeout < 5000
+            && (args.protocol.as_deref() == Some("udp") || args.protocol.as_deref() == Some("both"))
+        {
+            eprintln!("Recommendation: Consider increasing timeout for IPv6 UDP scanning (--timeout 5000 or higher)");
+        }
     }
 
-    if args.banner && args.protocol.as_deref() != Some("udp") {
-        println!("Banner grabbing enabled");
-    }
+    if !args.json {
+        println!("Port Scanner v0.4.0");
+        println!("Target: {}", args.target);
 
-    if args.service_detection {
-        println!("Advanced service detection enabled");
-    }
+        // Show IPv6 address format if applicable
+        if is_ipv6_target(&args.target) {
+            if let Ok(normalized) = normalize_ipv6_display(&args.target) {
+                if normalized != args.target {
+                    println!("Normalized: {}", normalized);
+                }
+            }
+        }
 
-    if args.os_detection {
-        println!("OS fingerprinting enabled");
-    }
+        println!("Ports: {}", args.ports);
+        println!("Protocol(s): {}", args.protocol.as_deref().unwrap_or("tcp"));
+        println!("Concurrent connections: {}", args.concurrency);
+        println!("Timeout: {}ms", args.timeout);
 
-    if args.ssl_analysis {
-        println!("SSL/TLS analysis enabled");
-    }
+        if args.stealth {
+            println!("Stealth SYN scan enabled");
+            #[cfg(not(target_os = "linux"))]
+            println!(
+                "Warning: SYN scan not fully supported on this OS, falling back to TCP connect"
+            );
+            #[cfg(target_os = "linux")]
+            println!("Note: SYN scan requires root privileges for both IPv4 and IPv6");
+        }
 
-    // UDP-specific warnings
-    if args.protocol.as_deref() == Some("udp") || args.protocol.as_deref() == Some("both") {
-        println!("\nUDP Scanning Notes:");
-        println!("• UDP scans may take longer due to protocol characteristics");
-        println!("• Many UDP services may appear as 'open|filtered'");
-        println!("• Consider using --udp-common for faster common port scanning");
-        println!("• Increase timeout for better UDP detection accuracy");
+        if args.banner && args.protocol.as_deref() != Some("udp") {
+            println!("Banner grabbing enabled");
+        }
+
+        if args.service_detection {
+            println!("Advanced service detection enabled");
+        }
+
+        if args.os_detection {
+            println!("OS fingerprinting enabled");
+        }
+
+        if args.ssl_analysis {
+            println!("SSL/TLS analysis enabled");
+        }
+
+        // IPv6-specific notes
+        if is_ipv6_target(&args.target) {
+            println!("\nIPv6 Scanning Notes:");
+            println!("• IPv6 stealth scanning requires root privileges");
+            println!("• All features (SSL, service detection, OS fingerprinting) work with IPv6");
+            println!("• Consider using higher timeouts for IPv6 networks");
+
+            if args.target.contains('%') {
+                println!("• Link-local address detected with zone identifier");
+            }
+        }
+
+        // UDP-specific warnings
+        if args.protocol.as_deref() == Some("udp") || args.protocol.as_deref() == Some("both") {
+            println!("\nUDP Scanning Notes:");
+            println!("• UDP scans may take longer due to protocol characteristics");
+            println!("• Many UDP services may appear as 'open|filtered'");
+            println!("• Consider using --udp-common for faster common port scanning");
+            println!("• Increase timeout for better UDP detection accuracy");
+            if is_ipv6_target(&args.target) {
+                println!("• IPv6 UDP scanning may require even higher timeouts");
+            }
+        }
     }
 
     match PortScanner::new(args) {
@@ -260,9 +347,113 @@ async fn main() {
                 );
             }
 
+            if e.contains("IPv6") || e.contains("address") {
+                eprintln!("Hint: Check IPv6 address format or network connectivity");
+                eprintln!("   IPv6 examples: 2001:db8::1, ::1, fe80::1%eth0");
+                eprintln!("   Use --ipv4-only or --ipv6-only to force protocol version");
+            }
+
             std::process::exit(1);
         }
     }
+}
+
+async fn validate_and_resolve_target(
+    target: &str,
+    ipv4_only: bool,
+    ipv6_only: bool,
+) -> Result<(String, Option<String>), String> {
+    use std::net::ToSocketAddrs;
+
+    // If it's already a valid IP address, return it
+    if let Ok(ip) = target.parse::<IpAddr>() {
+        let version = if ip.is_ipv4() { "IPv4" } else { "IPv6" };
+        return Ok((target.to_string(), Some(version.to_string())));
+    }
+
+    // If it contains brackets, try to parse as IPv6
+    if target.starts_with('[') && target.ends_with(']') {
+        let inner = &target[1..target.len() - 1];
+        if let Ok(ip) = inner.parse::<IpAddr>() {
+            return Ok((inner.to_string(), Some("IPv6".to_string())));
+        }
+    }
+
+    // Try hostname resolution
+    let socket_addrs = format!("{}:80", target)
+        .to_socket_addrs()
+        .map_err(|e| format!("Failed to resolve hostname '{}': {}", target, e))?;
+
+    let mut ipv4_addrs = Vec::new();
+    let mut ipv6_addrs = Vec::new();
+
+    for addr in socket_addrs {
+        match addr.ip() {
+            IpAddr::V4(ip) => ipv4_addrs.push(ip),
+            IpAddr::V6(ip) => ipv6_addrs.push(ip),
+        }
+    }
+
+    // Apply resolution preferences
+    if ipv6_only {
+        if let Some(ipv6) = ipv6_addrs.first() {
+            return Ok((ipv6.to_string(), Some("IPv6".to_string())));
+        } else {
+            return Err(format!("No IPv6 address found for hostname '{}'", target));
+        }
+    }
+
+    if ipv4_only {
+        if let Some(ipv4) = ipv4_addrs.first() {
+            return Ok((ipv4.to_string(), Some("IPv4".to_string())));
+        } else {
+            return Err(format!("No IPv4 address found for hostname '{}'", target));
+        }
+    }
+
+    // Default: prefer IPv4, fallback to IPv6
+    if let Some(ipv4) = ipv4_addrs.first() {
+        Ok((ipv4.to_string(), Some("IPv4".to_string())))
+    } else if let Some(ipv6) = ipv6_addrs.first() {
+        Ok((ipv6.to_string(), Some("IPv6".to_string())))
+    } else {
+        Err(format!("No IP address found for hostname '{}'", target))
+    }
+}
+
+fn is_ipv6_target(target: &str) -> bool {
+    // Check if target contains IPv6 characteristics
+    target.contains(':') && !target.contains("://") || target.starts_with('[')
+}
+
+fn normalize_ipv6_display(addr: &str) -> Result<String, String> {
+    use std::net::Ipv6Addr;
+
+    // Remove brackets if present
+    let clean_addr = if addr.starts_with('[') && addr.ends_with(']') {
+        &addr[1..addr.len() - 1]
+    } else {
+        addr
+    };
+
+    // Handle zone identifier
+    let (addr_part, zone) = if let Some(percent_pos) = clean_addr.find('%') {
+        (&clean_addr[..percent_pos], Some(&clean_addr[percent_pos..]))
+    } else {
+        (clean_addr, None)
+    };
+
+    let ipv6: Ipv6Addr = addr_part
+        .parse()
+        .map_err(|e| format!("Invalid IPv6 address: {}", e))?;
+
+    let normalized = if let Some(zone) = zone {
+        format!("{}{}", ipv6, zone)
+    } else {
+        ipv6.to_string()
+    };
+
+    Ok(normalized)
 }
 
 fn get_top_ports(n: u16, protocol: &str) -> String {
@@ -297,4 +488,14 @@ fn get_top_ports(n: u16, protocol: &str) -> String {
         .map(|p| p.to_string())
         .collect::<Vec<String>>()
         .join(",")
+}
+
+#[cfg(unix)]
+fn is_root() -> bool {
+    unsafe { libc::getuid() == 0 }
+}
+
+#[cfg(not(unix))]
+fn is_root() -> bool {
+    false
 }
