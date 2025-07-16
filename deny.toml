@@ -1,4 +1,3 @@
-# deny.toml
 [graph]
 # All of the available features for the crate we're building
 all-features = true
@@ -31,8 +30,6 @@ unlicensed = "deny"
 copyleft = "warn"
 # Blanket approval or denial for OSI-approved or FSF Free/Libre licenses
 allow-osi-fsf-free = "both"
-# Lint level for licenses considered to be deprecated
-deprecated = "warn"
 # List of explicitly allowed licenses
 allow = [
     "MIT",
