@@ -3,16 +3,19 @@ use crate::stealth::types::StealthScanError;
 use rand::Rng;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
+#[derive(Debug)]
 pub struct TcpPacket {
     pub data: Vec<u8>,
     pub total_length: usize,
 }
 
+#[derive(Debug)]
 pub struct Ipv4PacketBuilder {
     source_ip: Ipv4Addr,
     dest_ip: Ipv4Addr,
 }
 
+#[derive(Debug)]
 pub struct Ipv6PacketBuilder {
     source_ip: Ipv6Addr,
     dest_ip: Ipv6Addr,

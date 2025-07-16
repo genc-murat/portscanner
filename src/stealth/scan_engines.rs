@@ -17,6 +17,15 @@ pub struct StealthSynScanner {
     target: IpAddr,
 }
 
+impl std::fmt::Debug for StealthSynScanner {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StealthSynScanner")
+            .field("target", &self.target)
+            .field("config", &self.config)
+            .finish()
+    }
+}
+
 impl StealthSynScanner {
     pub fn new(target: IpAddr, config: ScanConfig) -> Result<Self, StealthScanError> {
         let packet_builder: Box<dyn PacketBuilder<Packet = TcpPacket> + Send + Sync> = match target
@@ -147,6 +156,7 @@ impl StealthSynScanner {
     }
 }
 
+#[derive(Debug)]
 pub struct TcpConnectScanner {
     config: ScanConfig,
     connector: TcpConnector,
@@ -215,6 +225,15 @@ pub struct AdvancedScanEngine {
     packet_parser: Box<dyn PacketParser + Send + Sync>,
     network_utils: Arc<dyn NetworkUtils + Send + Sync>,
     target: IpAddr,
+}
+
+impl std::fmt::Debug for AdvancedScanEngine {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AdvancedScanEngine")
+            .field("target", &self.target)
+            .field("config", &self.config)
+            .finish()
+    }
 }
 
 impl AdvancedScanEngine {

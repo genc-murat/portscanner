@@ -4,7 +4,7 @@ use std::net::IpAddr;
 
 /// Trait for different scanning implementations
 #[async_trait]
-pub trait ScanEngine: Send + Sync {
+pub trait ScanEngine: Send + Sync + std::fmt::Debug {
     async fn scan_port(
         &self,
         target: IpAddr,

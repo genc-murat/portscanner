@@ -17,6 +17,15 @@ pub struct RawSocketManager {
     _phantom: std::marker::PhantomData<()>,
 }
 
+impl std::fmt::Debug for RawSocketManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RawSocketManager")
+            .field("target", &self.target)
+            .field("has_socket", &self.socket_fd.is_some())
+            .finish()
+    }
+}
+
 impl RawSocketManager {
     pub fn new(target: IpAddr) -> Result<Self, StealthScanError> {
         #[cfg(unix)]
@@ -281,6 +290,7 @@ impl Drop for RawSocketManager {
     }
 }
 
+#[derive(Debug)]
 pub struct TcpConnector {
     // Connection pool or configuration could be added here
 }
