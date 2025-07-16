@@ -21,6 +21,10 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 rand = "0.8"
 regex = "1.10"
+# Added for refactored stealth module
+async-trait = "0.1"
+thiserror = "1.0"
+futures = "0.3"
 
 # Unix-specific dependencies for raw socket support
 [target.'cfg(unix)'.dependencies]
@@ -39,3 +43,9 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+# Features for optional functionality
+[features]
+default = ["stealth"]
+stealth = []          # Enable stealth scanning capabilities
+mock-testing = []     # Enable mock implementations for testing

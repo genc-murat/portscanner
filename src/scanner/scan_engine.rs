@@ -3,12 +3,16 @@ use super::scan_results::ScanResult;
 use super::services;
 use super::utils;
 use crate::service_detection::ServiceDetector;
-use crate::stealth::{PortState, StealthScanResult, StealthScanner};
+use crate::stealth::{
+    utils as stealth_utils, PortState, ScanConfig as StealthScanConfig, ScanTechnique,
+    StealthScanResult, StealthScanner,
+};
 use crate::udp::{UdpPortState, UdpScanResult, UdpScanner};
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::net::TcpStream;
-use tokio::time::{timeout, Duration};
+use tokio::time::timeout;
 
 pub async fn start_tcp_scans(
     config: &ScanConfig,
@@ -44,7 +48,17 @@ pub async fn start_tcp_scans(
             }
         }
         ScanType::StealthSyn => {
-            let stealth_scanner = match StealthScanner::new(config.target, config.timeout_ms) {
+            // Create stealth configuration
+            let stealth_config = StealthScanConfig {
+                timeout: Duration::from_millis(config.timeout_ms),
+                technique: ScanTechnique::StealthSyn,
+                retries: 2,
+                randomize_order: false,
+                delay_between_probes: None,
+                source_port_range: None,
+            };
+
+            let stealth_scanner = match StealthScanner::new(config.target, stealth_config) {
                 Ok(scanner) => Arc::new(scanner),
                 Err(e) => {
                     eprintln!("Failed to create stealth scanner: {}", e);
@@ -61,7 +75,7 @@ pub async fn start_tcp_scans(
 
                 let handle = tokio::spawn(async move {
                     let _permit = sem.acquire().await.unwrap();
-                    let stealth_result = scanner.syn_scan(port).await;
+                    let stealth_result = scanner.scan_port(port).await;
                     convert_stealth_result(
                         stealth_result,
                         target,
@@ -153,37 +167,54 @@ async fn tcp_scan_port(
 }
 
 async fn convert_stealth_result(
-    stealth_result: StealthScanResult,
+    stealth_result: Result<StealthScanResult, crate::stealth::types::StealthScanError>,
     target: IpAddr,
     service_detection: bool,
     service_detector: Arc<ServiceDetector>,
 ) -> ScanResult {
-    let (is_open, service) = match stealth_result.state {
-        PortState::Open => (true, services::detect_basic_service(stealth_result.port)),
-        PortState::Closed => (false, Some("closed".to_string())),
-        PortState::Filtered => (false, Some("filtered".to_string())),
-        PortState::Unknown => (false, Some("unknown".to_string())),
-    };
+    match stealth_result {
+        Ok(result) => {
+            let (is_open, service) = match result.state {
+                PortState::Open => (true, services::detect_basic_service(result.port)),
+                PortState::Closed => (false, Some("closed".to_string())),
+                PortState::Filtered => (false, Some("filtered".to_string())),
+                PortState::Unknown => (false, Some("unknown".to_string())),
+            };
 
-    let service_info = if is_open && service_detection {
-        Some(
-            service_detector
-                .detect_service(target, stealth_result.port, None)
-                .await,
-        )
-    } else {
-        None
-    };
+            let service_info = if is_open && service_detection {
+                Some(
+                    service_detector
+                        .detect_service(target, result.port, None)
+                        .await,
+                )
+            } else {
+                None
+            };
 
-    ScanResult::new_tcp(
-        stealth_result.port,
-        is_open,
-        service,
-        service_info,
-        None,
-        stealth_result.response_time,
-        "SYN",
-    )
+            ScanResult::new_tcp(
+                result.port,
+                is_open,
+                service,
+                service_info,
+                None,
+                result.response_time.as_millis() as u64,
+                "SYN",
+            )
+        }
+        Err(e) => {
+            // Create a default error result for failed scans
+            eprintln!("Stealth scan error: {}", e);
+            ScanResult::new_tcp(
+                0, // Port will be set by caller if needed
+                false,
+                Some("error".to_string()),
+                None,
+                None,
+                0,
+                "SYN",
+            )
+        }
+    }
 }
 
 async fn convert_udp_result(
@@ -238,4 +269,95 @@ async fn convert_udp_result(
         udp_result.response_time,
         udp_state_str,
     )
+}
+
+/// Helper function to create a stealth scanner with appropriate fallback
+pub async fn create_stealth_scanner_with_fallback(
+    target: IpAddr,
+    timeout_ms: u64,
+    prefer_stealth: bool,
+) -> Result<StealthScanner, String> {
+    let technique = if prefer_stealth && stealth_utils::is_platform_supported() {
+        match stealth_utils::validate_privileges() {
+            Ok(_) => ScanTechnique::StealthSyn,
+            Err(_) => {
+                eprintln!("Warning: Root privileges required for stealth SYN scan, falling back to TCP connect");
+                ScanTechnique::TcpConnect
+            }
+        }
+    } else {
+        ScanTechnique::TcpConnect
+    };
+
+    let config = StealthScanConfig {
+        timeout: Duration::from_millis(timeout_ms),
+        technique,
+        retries: 2,
+        randomize_order: false,
+        delay_between_probes: None,
+        source_port_range: None,
+    };
+
+    StealthScanner::new(target, config)
+        .map_err(|e| format!("Failed to create stealth scanner: {}", e))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::net::Ipv4Addr;
+
+    #[tokio::test]
+    async fn test_tcp_scan_port() {
+        let target = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+        let service_detector = Arc::new(ServiceDetector::new());
+
+        let result = tcp_scan_port(
+            target,
+            12345, // Likely closed port
+            Duration::from_millis(1000),
+            false,
+            false,
+            service_detector,
+        )
+        .await;
+
+        assert_eq!(result.port, 12345);
+        assert!(!result.is_open); // Should be closed
+    }
+
+    #[tokio::test]
+    async fn test_stealth_scanner_creation() {
+        let target = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+
+        let result = create_stealth_scanner_with_fallback(target, 3000, true).await;
+
+        // Should succeed with either stealth or TCP connect fallback
+        assert!(result.is_ok());
+
+        let scanner = result.unwrap();
+        let technique = scanner.get_technique();
+
+        // Should be either TcpConnect or StealthSyn depending on platform/privileges
+        assert!(matches!(
+            technique,
+            ScanTechnique::TcpConnect | ScanTechnique::StealthSyn
+        ));
+    }
+
+    #[test]
+    fn test_stealth_config_creation() {
+        let config = StealthScanConfig {
+            timeout: Duration::from_millis(3000),
+            technique: ScanTechnique::TcpConnect,
+            retries: 1,
+            randomize_order: false,
+            delay_between_probes: None,
+            source_port_range: None,
+        };
+
+        assert_eq!(config.timeout, Duration::from_millis(3000));
+        assert_eq!(config.technique, ScanTechnique::TcpConnect);
+        assert_eq!(config.retries, 1);
+    }
 }
