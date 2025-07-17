@@ -51,6 +51,7 @@
 
 pub mod os_fingerprinting;
 pub mod port_parser;
+pub mod progress;
 pub mod service_detection;
 pub mod ssl; // Add SSL module
 pub mod udp;

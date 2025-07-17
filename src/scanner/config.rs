@@ -1,4 +1,5 @@
 use crate::scanner::utils;
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 

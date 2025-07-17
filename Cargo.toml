@@ -25,6 +25,12 @@ regex = "1.10"
 async-trait = "0.1"
 thiserror = "1.0"
 futures = "0.3"
+# Added for enhanced CLI features
+chrono = { version = "0.4", features = ["serde"] }
+indicatif = "0.17"
+dialoguer = "0.10"
+console = "0.15"
+crossterm = "0.27"
 
 # Unix-specific dependencies for raw socket support
 [target.'cfg(unix)'.dependencies]
@@ -46,6 +52,7 @@ strip = true
 
 # Features for optional functionality
 [features]
-default = ["stealth"]
-stealth = []          # Enable stealth scanning capabilities
-mock-testing = []     # Enable mock implementations for testing
+default = ["stealth", "interactive"]
+stealth = []                         # Enable stealth scanning capabilities
+interactive = []                     # Enable interactive CLI features
+mock-testing = []                    # Enable mock implementations for testing
