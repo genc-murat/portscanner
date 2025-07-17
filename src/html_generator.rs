@@ -1,5 +1,5 @@
 use crate::os_fingerprinting::OSFingerprint;
-use crate::scanner::{CompleteScanResult, ScanResult};
+use crate::scanner::{CompleteScanResult, RiskAssessment, ScanResult}; // RiskAssessment'i scanner'dan import et
 use crate::ssl::SslAnalysisResult;
 use std::fs::File;
 use std::io::Write;
@@ -17,6 +17,7 @@ fn generate_html_report(result: &CompleteScanResult) -> String {
         <div class="container">
             <h1>Port Scan Report for {target}</h1>
             {summary}
+            {risk_assessment}
             {os_detection}
             {tcp_results}
             {udp_results}
@@ -25,6 +26,7 @@ fn generate_html_report(result: &CompleteScanResult) -> String {
         "#,
         target = result.target,
         summary = generate_summary_section(result),
+        risk_assessment = generate_risk_assessment_section(&result.risk_assessment),
         os_detection = generate_os_detection_section(&result.os_fingerprint),
         tcp_results = generate_results_table(&result.scan_results, "TCP"),
         udp_results = generate_results_table(&result.scan_results, "UDP"),
@@ -185,6 +187,114 @@ fn generate_ssl_analysis_section(ssl_results: &[SslAnalysisResult]) -> String {
     )
 }
 
+fn generate_risk_assessment_section(risk_assessment: &Option<RiskAssessment>) -> String {
+    if let Some(assessment) = risk_assessment {
+        let posture_color = match assessment.overall_risk_score {
+            0..=30 => "critical",
+            31..=50 => "high",
+            51..=70 => "medium",
+            71..=85 => "good",
+            86..=100 => "excellent",
+            _ => "excellent",
+        };
+
+        let critical_findings_html = if !assessment.critical_findings.is_empty() {
+            let findings = assessment
+                .critical_findings
+                .iter()
+                .map(|f| {
+                    format!(
+                        "<div class='finding-item'><strong>{}</strong><br/>{}</div>",
+                        f.title, f.description
+                    )
+                })
+                .collect::<String>();
+            format!(
+                "<h4>Critical Findings</h4><div class='findings-list'>{}</div>",
+                findings
+            )
+        } else {
+            String::new()
+        };
+
+        let risk_categories_html = assessment.risk_categories.iter()
+            .map(|cat| {
+                let category_color = match cat.score {
+                    0..=30 => "critical",
+                    31..=50 => "high",
+                    51..=70 => "medium", 
+                    _ => "good",
+                };
+                format!(
+                    "<div class='risk-category'><span class='category-name'>{:?}</span><span class='risk-score risk-{}'>{}/100</span></div>",
+                    cat.category, category_color, cat.score
+                )
+            })
+            .collect::<String>();
+
+        let recommendations_html = assessment
+            .recommendations
+            .iter()
+            .take(5)
+            .map(|rec| {
+                let priority_class = match rec.priority {
+                    crate::scanner::Priority::Immediate => "immediate",
+                    crate::scanner::Priority::High => "high",
+                    crate::scanner::Priority::Medium => "medium",
+                    crate::scanner::Priority::Low => "low",
+                };
+                format!(
+                    "<li class='recommendation priority-{}'><strong>{}</strong><br/>{}</li>",
+                    priority_class, rec.title, rec.description
+                )
+            })
+            .collect::<String>();
+
+        format!(
+            r#"
+            <div class="card">
+                <h2>🛡️ Security Risk Assessment</h2>
+                <div class="risk-overview">
+                    <div class="overall-score">
+                        <h3>Overall Risk Score</h3>
+                        <div class="score-circle risk-{}">
+                            <span class="score-value">{}/100</span>
+                            <span class="score-label">{:?}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                {}
+                
+                <h4>Risk Categories</h4>
+                <div class="risk-categories">
+                    {}
+                </div>
+                
+                <h4>Top Security Recommendations</h4>
+                <ul class="recommendations-list">
+                    {}
+                </ul>
+                
+                <div class="compliance-status">
+                    <h4>Compliance Status</h4>
+                    <p><strong>Overall Compliance:</strong> {}%</p>
+                </div>
+            </div>
+            "#,
+            posture_color,
+            assessment.overall_risk_score,
+            assessment.security_posture,
+            critical_findings_html,
+            risk_categories_html,
+            recommendations_html,
+            assessment.compliance_status.overall_compliance_score
+        )
+    } else {
+        String::new()
+    }
+}
+
 fn wrap_with_html_template(body: &str, title: &str) -> String {
     format!(
         r#"
@@ -208,6 +318,39 @@ fn wrap_with_html_template(body: &str, title: &str) -> String {
                 .score-medium {{ color: #ffc107; }}
                 .score-low {{ color: #dc3545; }}
                 ul {{ padding-left: 20px; }}
+                
+                /* Risk Assessment Styles */
+                .risk-overview {{ display: flex; justify-content: center; margin: 20px 0; }}
+                .overall-score {{ text-align: center; }}
+                .score-circle {{ width: 120px; height: 120px; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 10px auto; }}
+                .score-circle.risk-excellent {{ background: linear-gradient(135deg, #28a745, #20c997); }}
+                .score-circle.risk-good {{ background: linear-gradient(135deg, #ffc107, #fd7e14); }}
+                .score-circle.risk-medium {{ background: linear-gradient(135deg, #fd7e14, #dc3545); }}
+                .score-circle.risk-high {{ background: linear-gradient(135deg, #dc3545, #6f42c1); }}
+                .score-circle.risk-critical {{ background: linear-gradient(135deg, #6f42c1, #000); }}
+                .score-value {{ font-size: 24px; font-weight: bold; color: white; }}
+                .score-label {{ font-size: 12px; color: white; text-transform: uppercase; }}
+                
+                .findings-list {{ margin: 15px 0; }}
+                .finding-item {{ background: #2d1b1b; border-left: 4px solid #dc3545; padding: 10px; margin: 8px 0; border-radius: 4px; }}
+                
+                .risk-categories {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin: 15px 0; }}
+                .risk-category {{ background: #252525; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }}
+                .category-name {{ font-weight: bold; }}
+                .risk-score {{ padding: 5px 10px; border-radius: 15px; color: white; font-weight: bold; }}
+                .risk-score.risk-good {{ background: #28a745; }}
+                .risk-score.risk-medium {{ background: #ffc107; }}
+                .risk-score.risk-high {{ background: #fd7e14; }}
+                .risk-score.risk-critical {{ background: #dc3545; }}
+                
+                .recommendations-list {{ list-style: none; padding: 0; }}
+                .recommendation {{ background: #252525; margin: 8px 0; padding: 12px; border-radius: 6px; border-left: 4px solid #00aaff; }}
+                .recommendation.priority-immediate {{ border-left-color: #dc3545; }}
+                .recommendation.priority-high {{ border-left-color: #fd7e14; }}
+                .recommendation.priority-medium {{ border-left-color: #ffc107; }}
+                .recommendation.priority-low {{ border-left-color: #28a745; }}
+                
+                .compliance-status {{ background: #1a1a2e; padding: 15px; border-radius: 8px; margin-top: 20px; }}
             </style>
         </head>
         <body>

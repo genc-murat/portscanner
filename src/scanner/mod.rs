@@ -1,12 +1,14 @@
 mod config;
 mod display;
+mod risk_assessment;
 mod scan_engine;
 mod scan_results;
 mod services;
-mod utils;
+mod utils; // Yeni eklenen modül
 
 pub use config::{Protocol, ScanConfig, ScanType};
-pub use scan_results::{CompleteScanResult, ScanResult, ScanSummary};
+pub use risk_assessment::{format_risk_assessment, Priority, RiskAssessment, RiskAssessmentEngine};
+pub use scan_results::{CompleteScanResult, ScanResult, ScanSummary}; // Priority'yi de re-export et
 
 use crate::html_generator::write_html_report;
 use crate::os_fingerprinting::{OSDetector, OSFingerprint};
@@ -21,6 +23,7 @@ pub struct PortScanner {
     os_detector: Arc<tokio::sync::Mutex<OSDetector>>,
     udp_scanner: Arc<UdpScanner>,
     ssl_analyzer: Arc<SslAnalyzer>,
+    risk_engine: Arc<RiskAssessmentEngine>, // Yeni eklenen risk engine
 }
 
 impl PortScanner {
@@ -32,6 +35,7 @@ impl PortScanner {
             os_detector: Arc::new(tokio::sync::Mutex::new(OSDetector::new())),
             udp_scanner: Arc::new(UdpScanner::new(config.target, config.timeout_ms)),
             ssl_analyzer: Arc::new(SslAnalyzer::new(config.timeout_ms)),
+            risk_engine: Arc::new(RiskAssessmentEngine::new()), // Risk engine initialization
             config,
         })
     }
@@ -66,6 +70,11 @@ impl PortScanner {
         let os_fingerprint = self.perform_os_detection(&results).await;
         let ssl_analysis = self.perform_ssl_analysis(&results).await;
 
+        // NEW: Risk Assessment
+        let risk_assessment = self
+            .perform_risk_assessment(&results, &os_fingerprint, &ssl_analysis)
+            .await;
+
         let scan_time = scan_start.elapsed().as_secs_f64();
         let summary =
             scan_results::create_scan_summary(&results, &ssl_analysis, scan_time, &self.config);
@@ -76,6 +85,7 @@ impl PortScanner {
             os_fingerprint: os_fingerprint.clone(),
             ssl_analysis,
             scan_summary: summary,
+            risk_assessment: Some(risk_assessment.clone()), // Risk assessment'i sonuçlara ekle
         };
 
         self.display_results(complete_result);
@@ -156,6 +166,23 @@ impl PortScanner {
         ssl_results
     }
 
+    // NEW: Risk Assessment Method
+    async fn perform_risk_assessment(
+        &self,
+        results: &[ScanResult],
+        os_fingerprint: &Option<OSFingerprint>,
+        ssl_analysis: &[SslAnalysisResult],
+    ) -> RiskAssessment {
+        println!("🛡️  Performing security risk assessment...");
+
+        self.risk_engine.assess_risks(
+            results,
+            os_fingerprint,
+            ssl_analysis,
+            &self.config.target_hostname,
+        )
+    }
+
     fn display_results(&self, complete_result: CompleteScanResult) {
         if self.config.json_output {
             println!(
@@ -173,6 +200,12 @@ impl PortScanner {
             return;
         }
 
-        display::display_formatted_results(complete_result, &self.config);
+        // Display normal results
+        display::display_formatted_results(complete_result.clone(), &self.config);
+
+        // NEW: Display Risk Assessment
+        if let Some(risk_assessment) = &complete_result.risk_assessment {
+            println!("{}", format_risk_assessment(risk_assessment));
+        }
     }
 }

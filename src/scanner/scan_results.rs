@@ -1,4 +1,5 @@
 use super::config::ScanConfig;
+use super::risk_assessment::RiskAssessment; // Risk assessment import
 use crate::os_fingerprinting::OSFingerprint;
 use crate::service_detection::ServiceInfo;
 use crate::ssl::SslAnalysisResult;
@@ -24,6 +25,7 @@ pub struct CompleteScanResult {
     pub os_fingerprint: Option<OSFingerprint>,
     pub ssl_analysis: Vec<SslAnalysisResult>,
     pub scan_summary: ScanSummary,
+    pub risk_assessment: Option<RiskAssessment>, // NEW: Risk assessment field
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

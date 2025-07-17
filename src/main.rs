@@ -41,25 +41,18 @@ fn create_interactive_command() -> Command {
         .version("0.4.0")
         .about("🚀 A fast, modern port scanner with advanced features")
         .long_about(format!("{}
+
 {}
-{}
-{}
-{}
-{}
-{}
-{}
-{}
-{}",
+  • TCP & UDP Scanning with concurrent connections
+  • Stealth SYN scan for Linux/Unix systems
+  • Advanced service detection with 150+ signatures
+  • OS fingerprinting using TCP/IP stack analysis
+  • SSL/TLS security analysis and vulnerability detection
+  • Risk assessment and compliance checking
+  • IPv6 support for modern networking
+  • Professional HTML reports and JSON export",
             "🚀 Advanced Port Scanner with Modern Features".cyan().bold(),
-            "",
-            "Features:".yellow().bold(),
-            "  • TCP & UDP Scanning with concurrent connections",
-            "  • Stealth SYN scan for Linux/Unix systems",
-            "  • Advanced service detection with 150+ signatures",
-            "  • OS fingerprinting using TCP/IP stack analysis",
-            "  • SSL/TLS security analysis and vulnerability detection",
-            "  • IPv6 support for modern networking",
-            "  • Professional HTML reports and JSON export"
+            "Features:".yellow().bold()
         ))
         .arg(
             Arg::new("target")
@@ -162,11 +155,31 @@ fn create_interactive_command() -> Command {
                 .action(clap::ArgAction::SetTrue)
         )
         .arg(
+            Arg::new("risk_assessment")
+                .long("risk-assessment")
+                .help("🛡️ Enable comprehensive security risk assessment")
+                .action(clap::ArgAction::SetTrue)
+        )
+        .arg(
+            Arg::new("compliance_check")
+                .long("compliance")
+                .value_name("FRAMEWORK")
+                .help("📋 Check compliance against security frameworks")
+                .long_help("Check compliance against security frameworks:\n  • pci-dss: Payment Card Industry Data Security Standard\n  • nist: NIST Cybersecurity Framework\n  • all: Check all supported frameworks")
+                .value_parser(["pci-dss", "nist", "all"])
+        )
+        .arg(
+            Arg::new("threat_model")
+                .long("threat-model")
+                .help("🎯 Generate threat model and attack scenarios")
+                .action(clap::ArgAction::SetTrue)
+        )
+        .arg(
             Arg::new("aggressive")
                 .short('A')
                 .long("aggressive")
                 .help("🚀 Enable all detection methods")
-                .long_help("Enables: service detection + banner grabbing + OS detection + SSL analysis")
+                .long_help("Enables: service detection + banner grabbing + OS detection + SSL analysis + risk assessment")
                 .action(clap::ArgAction::SetTrue)
         )
         .arg(
@@ -291,6 +304,9 @@ fn run_interactive_mode() -> Result<Args, String> {
         os_detection,
         ssl_analysis,
         aggressive: false,
+        risk_assessment: false,
+        compliance_check: None,
+        threat_model: false,
     })
 }
 
@@ -416,7 +432,21 @@ async fn main() {
             os_detection: matches.get_flag("os_detection"),
             ssl_analysis: matches.get_flag("ssl_analysis"),
             aggressive: matches.get_flag("aggressive"),
+            risk_assessment: matches.get_flag("risk_assessment"),
+            compliance_check: matches.get_one::<String>("compliance_check").cloned(),
+            threat_model: matches.get_flag("threat_model"),
         };
+
+        // Handle aggressive mode - enable risk assessment by default
+        if args.aggressive {
+            args.risk_assessment = true;
+            args.threat_model = true;
+        }
+
+        // Auto-enable risk assessment for compliance checks
+        if args.compliance_check.is_some() {
+            args.risk_assessment = true;
+        }
 
         // Quick scan mode
         if matches.get_flag("quick") {

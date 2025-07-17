@@ -22,6 +22,9 @@ pub struct Args {
     pub os_detection: bool,
     pub ssl_analysis: bool,
     pub aggressive: bool,
+    pub risk_assessment: bool,
+    pub compliance_check: Option<String>,
+    pub threat_model: bool,
 }
 
 pub struct ScanProgress {
@@ -252,6 +255,9 @@ pub struct InteractiveScanner {
     use_stealth: bool,
     output_format: OutputFormat,
     output_file: Option<String>,
+    enable_risk_assessment: bool,
+    compliance_framework: Option<String>,
+    enable_threat_model: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -276,6 +282,10 @@ impl InteractiveScanner {
             use_stealth: false,
             output_format: OutputFormat::Console,
             output_file: None,
+            // NEW fields initialization
+            enable_risk_assessment: false,
+            compliance_framework: None,
+            enable_threat_model: false,
         }
     }
 
@@ -357,6 +367,8 @@ impl InteractiveScanner {
             "SSL/TLS Analysis",
             "Banner Grabbing",
             "Stealth SYN Scan (requires root)",
+            "Risk Assessment", // NEW
+            "Threat Modeling", // NEW
         ];
 
         let selected_features = MultiSelect::new()
@@ -371,8 +383,32 @@ impl InteractiveScanner {
                 2 => self.enable_ssl_analysis = true,
                 3 => self.enable_banner_grabbing = true,
                 4 => self.use_stealth = true,
+                5 => self.enable_risk_assessment = true, // NEW
+                6 => self.enable_threat_model = true,    // NEW
                 _ => {}
             }
+        }
+
+        // NEW: Compliance framework selection
+        if self.enable_risk_assessment {
+            let compliance_options = vec![
+                "None",
+                "PCI DSS",
+                "NIST Cybersecurity Framework",
+                "All frameworks",
+            ];
+            let compliance_selection = Select::new()
+                .with_prompt("📋 Compliance framework")
+                .items(&compliance_options)
+                .default(0)
+                .interact()?;
+
+            self.compliance_framework = match compliance_selection {
+                1 => Some("pci-dss".to_string()),
+                2 => Some("nist".to_string()),
+                3 => Some("all".to_string()),
+                _ => None,
+            };
         }
 
         // Output format
@@ -464,6 +500,15 @@ impl InteractiveScanner {
         if self.use_stealth {
             features.push("Stealth Scan".to_string());
         }
+        if self.enable_risk_assessment {
+            features.push("Risk Assessment".to_string());
+        }
+        if self.enable_threat_model {
+            features.push("Threat Modeling".to_string());
+        }
+        if let Some(ref framework) = self.compliance_framework {
+            features.push(format!("Compliance ({})", framework));
+        }
 
         if features.is_empty() {
             features.push("Basic Scan".to_string());
@@ -498,6 +543,9 @@ impl InteractiveScanner {
             aggressive: self.enable_service_detection
                 && self.enable_os_detection
                 && self.enable_ssl_analysis,
+            risk_assessment: self.enable_risk_assessment, // NEW
+            compliance_check: self.compliance_framework.clone(), // NEW
+            threat_model: self.enable_threat_model,       // NEW
         }
     }
 }

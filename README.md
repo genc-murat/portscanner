@@ -1,6 +1,6 @@
 # Port Scanner
 
-A fast, modern port scanner written in Rust with async networking, IPv4/IPv6 dual-stack support, TCP/UDP scanning, stealth SYN scan, SSL/TLS analysis, advanced service detection, OS fingerprinting, interactive mode, and beautiful HTML reporting capabilities. Inspired by Nmap but built for speed, simplicity, and user experience.
+A fast, modern port scanner written in Rust with async networking, IPv4/IPv6 dual-stack support, TCP/UDP scanning, stealth SYN scan, SSL/TLS analysis, advanced service detection, OS fingerprinting, **comprehensive security risk assessment**, interactive mode, and beautiful HTML reporting capabilities. Inspired by Nmap but built for speed, simplicity, and enterprise-grade security analysis.
 
 ## 🚀 Features
 
@@ -20,6 +20,15 @@ A fast, modern port scanner written in Rust with async networking, IPv4/IPv6 dua
 - **Vulnerability Detection**: SSL/TLS vulnerability scanning (e.g., POODLE, BEAST)
 - **Security Scoring**: Automated security assessment with recommendations
 
+### Security Risk Assessment
+- **Comprehensive Risk Analysis**: Multi-dimensional security risk scoring (0-100)
+- **Critical Findings Detection**: Automated identification of high-risk exposures
+- **Vulnerability Assessment**: Port and service-specific vulnerability identification
+- **Compliance Framework Support**: PCI DSS and NIST Cybersecurity Framework checking
+- **Attack Surface Analysis**: Entry point identification and lateral movement risk assessment
+- **Threat Modeling**: Advanced threat actor profiling and attack scenario generation
+- **Security Recommendations**: Prioritized, actionable remediation guidance
+
 ### User Experience
 - **🎮 Interactive Mode**: Guided setup with menu-driven configuration
 - **🌈 Beautiful UI**: Colored terminal output with progress bars and animations
@@ -28,11 +37,12 @@ A fast, modern port scanner written in Rust with async networking, IPv4/IPv6 dua
 - **🔍 Quick Scan Mode**: Instant scanning with optimized settings
 
 ### Output & Reporting
-- **📄 HTML Reports**: Professional, responsive HTML reports with charts
-- **📋 JSON Export**: Structured data export for automation and integration
+- **📄 HTML Reports**: Professional, responsive HTML reports with security dashboards
+- **📋 JSON Export**: Structured data export for automation and SIEM integration
 - **🎨 Rich Terminal Output**: Syntax highlighting and visual indicators
 - **📈 Performance Metrics**: Detailed scan statistics and timing information
 - **🔒 Security Assessment**: Automated risk analysis and recommendations
+- **📊 Executive Dashboards**: High-level security posture visualization
 
 ### Configuration & Flexibility
 - **Multiple Target Support**: Scan IPv4/IPv6 addresses or hostnames
@@ -41,9 +51,57 @@ A fast, modern port scanner written in Rust with async networking, IPv4/IPv6 dua
 - **Auto Mode**: Intelligent scan type selection based on privileges
 - **Preset Configurations**: Quick setup for common scenarios
 
+## 🛡️ Security Risk Assessment
+
+### Risk Analysis Features
+
+The integrated risk assessment engine provides enterprise-grade security analysis:
+
+```bash
+# Basic risk assessment
+portscanner -t example.com --risk-assessment
+
+# Compliance checking
+portscanner -t example.com --compliance pci-dss
+portscanner -t example.com --compliance nist
+portscanner -t example.com --compliance all
+
+# Threat modeling
+portscanner -t example.com --threat-model
+
+# Comprehensive security analysis
+portscanner -t example.com --aggressive
+```
+
+### Security Posture Classifications
+
+- **🟢 Excellent (86-100)**: Minimal security risks, strong configuration
+- **🟡 Good (71-85)**: Generally secure with minor improvements needed
+- **🟠 Fair (51-70)**: Moderate risks requiring attention
+- **🔴 Poor (31-50)**: Significant security concerns
+- **💀 Critical (0-30)**: Immediate security action required
+
+### Risk Categories Analyzed
+
+1. **🎯 Exposed Services**: Attack surface and unnecessary service exposure
+2. **🔓 Insecure Protocols**: Use of deprecated or unencrypted protocols
+3. **🔐 Weak Authentication**: Default credentials and weak access controls
+4. **📡 Unencrypted Traffic**: Missing or weak encryption implementation
+5. **📊 Database Exposure**: Database service exposure and security
+6. **🚪 Remote Access**: Remote administration service security
+7. **🖥️ Network Devices**: Network infrastructure security assessment
+8. **🌐 Web Applications**: Web service security and configuration
+
+### Compliance Frameworks
+
+- **📋 PCI DSS**: Payment Card Industry Data Security Standard
+- **🏛️ NIST**: NIST Cybersecurity Framework
+- **🔒 SOC 2**: Service Organization Control 2 (planned)
+- **🌐 ISO 27001**: International security management standard (planned)
+
 ## 🎮 Interactive Mode
 
-Launch the interactive mode for guided scanning:
+Launch the interactive mode for guided scanning with security assessment:
 
 ```bash
 # Start interactive mode
@@ -53,15 +111,13 @@ Launch the interactive mode for guided scanning:
 ./target/release/portscanner -i
 ```
 
-The interactive mode provides:
-- **Step-by-step configuration** with clear prompts
-- **Performance level selection** (Conservative, Balanced, Aggressive, Maximum)
-- **Feature selection** with multi-select menus
-- **Output format choice** (Console, JSON, HTML)
-- **Configuration summary** before starting
-- **Built-in help** and explanations
+The enhanced interactive mode now includes:
+- **🛡️ Risk Assessment Configuration**: Enable comprehensive security analysis
+- **📋 Compliance Framework Selection**: Choose specific compliance standards
+- **🎯 Threat Modeling Options**: Advanced threat analysis configuration
+- **📊 Report Format Selection**: Choose output formats including security dashboards
 
-### Interactive Mode Screenshot
+### Enhanced Interactive Mode Screenshot
 
 ```
 🎮 Interactive Port Scanner Setup
@@ -76,14 +132,19 @@ The interactive mode provides:
   ✅ OS Fingerprinting
   ✅ SSL/TLS Analysis
   ✅ Banner Grabbing
-📊 Output format: HTML report
+  ✅ Risk Assessment
+  ✅ Threat Modeling
+📋 Compliance framework: PCI DSS
+📊 Output format: HTML report with security dashboard
 
 📋 Scan Configuration Summary:
    Target: scanme.nmap.org
    Ports: 1-1000
    Protocol: both
    Concurrency: 100
-   Features: Service Detection, OS Fingerprinting, SSL Analysis, Banner Grabbing
+   Features: Service Detection, OS Fingerprinting, SSL Analysis, 
+            Banner Grabbing, Risk Assessment, Threat Modeling
+   Compliance: PCI DSS
 
 🚀 Start scan with these settings? [Y/n]: y
 ```
@@ -103,72 +164,62 @@ cargo build --release
 # Try interactive mode first
 ./target/release/portscanner --interactive
 
-# Or run a basic TCP scan (IPv4)
-./target/release/portscanner -t google.com -p 80,443
+# Run a basic scan with security assessment
+./target/release/portscanner -t google.com -p 80,443 --risk-assessment
 
-# Run a basic TCP scan (IPv6)
-./target/release/portscanner -t 2001:4860:4860::8888 -p 80,443
-
-# Generate an HTML report (IPv4)
-./target/release/portscanner -t scanme.nmap.org -A --html report.html
-
-# Generate an HTML report (IPv6)
-./target/release/portscanner -t 2606:4700::6810:85e5 -A --html ipv6_report.html
+# Generate comprehensive security report
+./target/release/portscanner -t scanme.nmap.org --aggressive --html security_report.html
 ```
 
-### Quick Commands
+### Security Assessment Commands
 
 ```bash
-# Interactive mode (recommended for beginners)
+# Interactive mode with guided security setup
 portscanner --interactive
 
-# Quick scan with progress bar
-portscanner -t example.com --quick
+# Quick security assessment
+portscanner -t example.com --risk-assessment
 
-# Aggressive scan with all features
-portscanner -t example.com --aggressive
+# Compliance checking
+portscanner -t example.com --compliance pci-dss --html compliance_report.html
 
-# Stealth scan (requires root)
-sudo portscanner -t example.com --stealth
+# Comprehensive threat analysis
+portscanner -t example.com --threat-model --json > threat_model.json
 
-# UDP common ports
-portscanner -t example.com --udp-common
+# Executive security dashboard
+portscanner -t example.com --aggressive --html executive_dashboard.html
 
-# SSL/TLS security assessment
-portscanner -t example.com --ssl-analysis --html ssl_report.html
+# SIEM integration (JSON output with all security data)
+portscanner -t example.com --aggressive --json > siem_data.json
 ```
 
-### Basic Usage
+### Basic Usage with Security Features
 
 ```bash
-# Scan common TCP ports on an IPv6 target
-portscanner -t 2001:db8::1
+# Security-focused scan
+portscanner -t example.com --risk-assessment --ssl-analysis
 
-# Scan both TCP and UDP (IPv6)
-portscanner -t 2001:db8::1 --protocol both
+# Compliance audit scan
+portscanner -t example.com --compliance all --html audit_report.html
 
-# SSL/TLS security assessment (IPv6)
-portscanner -t 2606:4700::6810:85e5 -p 443,993,995 --ssl-analysis
+# Threat intelligence gathering
+portscanner -t example.com --threat-model --os-detection --service-detection
 
-# Export results to JSON (IPv6)
-portscanner -t 2606:4700::6810:85e5 -p 80,443 -j > results.json
-
-# Export aggressive scan results to an HTML file (IPv6)
-portscanner -t 2001:db8::1 -A --html detailed_report.html
+# Vulnerability assessment
+portscanner -t example.com --aggressive --compliance nist
 ```
 
 ## 🎨 Enhanced User Interface
 
-### Visual Features
+### Security-Enhanced Visual Features
 
-- **🎭 ASCII Art Banner**: Eye-catching startup banner
-- **🌈 Color-coded Output**: Different colors for ports, services, and states
-- **📊 Progress Bars**: Real-time scanning progress with ETA
-- **⚡ Performance Metrics**: Live speed and statistics
-- **🎯 Smart Highlighting**: Important findings highlighted
-- **🔍 Search Tips**: Contextual help and suggestions
+- **🛡️ Security Scoring Displays**: Real-time risk score visualization
+- **🚨 Critical Alert Highlighting**: Immediate attention to high-risk findings
+- **📊 Compliance Status Indicators**: Visual compliance framework status
+- **🎯 Threat Level Indicators**: Color-coded threat severity levels
+- **💡 Smart Security Recommendations**: Contextual security guidance
 
-### Progress Tracking
+### Enhanced Progress Tracking
 
 ```
 🚀 SCAN INITIALIZATION
@@ -184,47 +235,66 @@ portscanner -t 2001:db8::1 -A --html detailed_report.html
 🔍 Service Detection: ENABLED
 🖥️ OS Fingerprinting: ENABLED
 🔐 SSL/TLS Analysis:  ENABLED
+🛡️ Risk Assessment:   ENABLED
+📋 Compliance Check:  PCI DSS
+🎯 Threat Modeling:   ENABLED
 
 🔍 Scanning example.com [████████████████████████████████████████████████████] 100% (1000/1000)
   🌐 TCP  [████████████████████████████████████████████████████] 1000/1000 scanning...
   🔐 SSL  [████████████████████████████████████████████████████] 3/3 analyzing...
   🖥️ OS   [████████████████████████████████████████████████████] 100% fingerprinting...
+  🛡️ Risk [████████████████████████████████████████████████████] 100% assessing...
 ```
 
-### Enhanced Results Display
+### Enhanced Security Results Display
 
 ```
 ╔═══════════════════════════════════════════════════════════════╗
-║                     🌐 TCP SCAN RESULTS                      ║
+║                     🛡️ SECURITY ASSESSMENT                   ║
 ╚═══════════════════════════════════════════════════════════════╝
 
-🎯 5 open TCP ports discovered:
+🛡️ Overall Risk Score: 73/100 (Good)
 
-─────────────────────────────────────────────────────────────────────────────
-PORT     STATE        SERVICE                   VERSION         RESPONSE
-─────────────────────────────────────────────────────────────────────────────
-⚡ 22/tcp  open         ssh                      OpenSSH 8.2     45ms
-         └─ Banner: SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.3
-         └─ CPE: cpe:/a:openbsd:openssh:8.2p1
+🚨 CRITICAL FINDINGS:
+   • High-Risk Service Exposed: Port 23 (Telnet)
+     Remediation: Disable Telnet service. Use SSH for secure remote access.
 
-🔗 80/tcp  open         http                     Apache 2.4.41   89ms
-         └─ Banner: Server: Apache/2.4.41 (Ubuntu)
-         └─ Confidence: 95%
+📊 RISK CATEGORIES:
+   🟢 Exposed Services: 85/100 (Good priority)
+   🔴 Insecure Protocols: 45/100 (High priority)
+   🟡 Unencrypted Traffic: 60/100 (Medium priority)
+   🟢 Database Exposure: 100/100 (Low priority)
+   🟡 Remote Access: 70/100 (Medium priority)
 
-🔗 443/tcp open         https                    Apache 2.4.41   112ms
-         └─ Banner: Server: Apache/2.4.41 (Ubuntu)
-─────────────────────────────────────────────────────────────────────────────
+💡 TOP RECOMMENDATIONS:
+   1. 🚨 Address: High-Risk Service Exposed: Port 23
+      Disable Telnet service. Use SSH for secure remote access.
+   2. 🔴 Migrate to Secure Protocols
+      Replace insecure protocols (Telnet, FTP, HTTP) with secure alternatives.
+   3. 🔴 Implement Encryption
+      Enable encryption for all data in transit. Update SSL/TLS configurations.
 
-🎯 Security Assessment:
-   Overall Security Score: 78/100 (Good)
-   🟡 1 potential security concern detected
-   💡 Consider disabling unnecessary services
+🎯 ATTACK SURFACE:
+   • 5 total exposed ports
+   • 1 high-risk services
+   • 3 potential entry points
+
+📋 COMPLIANCE STATUS:
+   • Overall Compliance: 78%
+   • PCI DSS: 65%
+   • NIST: 91%
+
+🎯 THREAT MODEL:
+   • 3 threat actors identified
+   • 4 attack scenarios modeled
+   • Asset criticality: High
+   • Data sensitivity: Confidential
 ```
 
 ## 📊 Usage
 
 ```
-🚀 Advanced Port Scanner with Modern Features
+🚀 Advanced Port Scanner with Security Risk Assessment
 
 USAGE:
     portscanner [OPTIONS] --target <TARGET>
@@ -233,7 +303,7 @@ ARGUMENTS:
     -t, --target <IP/HOSTNAME>     🎯 Target IP address or hostname
 
 OPTIONS:
-    -p, --ports <PORT_RANGE>       📡 Ports to scan (supports ranges and lists) [default: 1-1000]
+    -p, --ports <PORT_RANGE>       📡 Ports to scan [default: 1-1000]
         --protocol <PROTOCOL>      🔌 Protocol to scan [default: tcp] [possible values: tcp, udp, both]
     -c, --concurrency <THREADS>    ⚡ Number of concurrent connections [default: 100]
     -T, --timeout <MILLISECONDS>   ⏱️ Connection timeout [default: 3000]
@@ -244,263 +314,91 @@ OPTIONS:
 SCANNING MODES:
     -b, --banner                   🏷️ Enable banner grabbing
     -s, --stealth                  👤 Use stealth SYN scan (requires root)
-        --scan-type <TYPE>         🔍 Scan technique [default: auto] [possible values: tcp, syn, udp, auto]
+        --scan-type <TYPE>         🔍 Scan technique [default: auto]
         --service-detection        🔧 Enable advanced service detection
         --ssl-analysis             🔐 Enable SSL/TLS analysis
     -O, --os-detection             🖥️ Enable OS fingerprinting
-    -A, --aggressive               🚀 Enable all detection methods
+    -A, --aggressive               🚀 Enable all detection methods + security analysis
     -U, --udp-common               📡 Scan common UDP ports
-        --top-ports <NUMBER>       🎯 Scan top N most common ports
+
+SECURITY ASSESSMENT:
+        --risk-assessment          🛡️ Enable comprehensive security risk assessment
+        --compliance <FRAMEWORK>   📋 Check compliance [possible values: pci-dss, nist, all]
+        --threat-model             🎯 Generate threat model and attack scenarios
 
 OUTPUT OPTIONS:
-    -j, --json                     📋 Output in JSON format
-        --html <FILENAME>          📊 Generate HTML report
+    -j, --json                     📋 Output in JSON format (includes security data)
+        --html <FILENAME>          📊 Generate HTML report with security dashboard
         --ipv6-only                🌐 Force IPv6 resolution
         --ipv4-only                🌍 Force IPv4 resolution
 
 EXAMPLES:
-    portscanner --interactive                           # Interactive mode
-    portscanner -t example.com --quick                 # Quick scan
-    portscanner -t example.com --aggressive            # Full analysis
-    portscanner -t example.com --html report.html      # HTML report
-    portscanner -t 2001:db8::1 --protocol both         # IPv6 scan
-    sudo portscanner -t example.com --stealth          # Stealth scan
+    # Interactive mode with security guidance
+    portscanner --interactive
+
+    # Quick security assessment
+    portscanner -t example.com --risk-assessment
+
+    # Compliance audit
+    portscanner -t example.com --compliance pci-dss --html audit.html
+
+    # Comprehensive security analysis
+    portscanner -t example.com --aggressive
+
+    # Threat intelligence
+    portscanner -t example.com --threat-model --json > threat_intel.json
+
+    # Executive security report
+    portscanner -t example.com --aggressive --html executive_report.html
 ```
 
-## 🎯 Sample Output
+## 🎯 Sample Security Assessment Output
 
-### Enhanced Terminal Output
-
-```
-╔═══════════════════════════════════════════════════════════════════════════════╗
-║                                                                               ║
-║    ██████╗  ██████╗ ██████╗ ████████╗███████╗ ██████╗ █████╗ ███╗   ██╗      ║
-║    ██╔══██╗██╔═══██╗██╔══██╗╚══██╔══╝██╔════╝██╔════╝██╔══██╗████╗  ██║      ║
-║    ██████╔╝██║   ██║██████╔╝   ██║   ███████╗██║     ███████║██╔██╗ ██║      ║
-║    ██╔═══╝ ██║   ██║██╔══██╗   ██║   ╚════██║██║     ██╔══██║██║╚██╗██║      ║
-║    ██║     ╚██████╔╝██║  ██║   ██║   ███████║╚██████╗██║  ██║██║ ╚████║      ║
-║    ╚═╝      ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝      ║
-║                                                                               ║
-║                🚀 Advanced Port Scanner with Modern Features 🚀               ║
-║                           Version 0.4.0 - Rust Edition                       ║
-║                                                                               ║
-╚═══════════════════════════════════════════════════════════════════════════════╝
-
-✨ Features Overview:
-   🔍 TCP & UDP Scanning with high-speed concurrent connections
-   👤 Stealth SYN scan for covert network reconnaissance
-   🔧 Advanced service detection with 150+ signatures
-   🖥️ OS fingerprinting using TCP/IP stack analysis
-   🔐 SSL/TLS security analysis and vulnerability assessment
-   🌐 Full IPv6 support for modern networks
-   📊 Professional HTML reports with interactive charts
-   📋 JSON export for integration with other tools
-
-🎯 Quick Start Examples:
-   • Basic scan:     portscanner -t example.com
-   • Stealth scan:   portscanner -t 192.168.1.1 --stealth
-   • Full analysis:  portscanner -t target.com --aggressive
-   • Interactive:    portscanner --interactive
-
-💡 Pro Tips:
-   • Use --concurrency 200 for faster results
-   • Add --aggressive for detailed analysis
-   • Try --html report.html for professional reports
-
-════════════════════════════════════════════════════════════════════════════════
-
-🔍 Validating target: example.com
-   🌐 Resolving hostname... ✅ Resolved to 93.184.216.34
-
-🚀 Initializing scan engines⚡ Loading...
-🚀 Scan engines ready! ✅
-
-╔═══════════════════════════════════════════════════════════════╗
-║                    🚀 SCAN INITIALIZATION                     ║
-╚═══════════════════════════════════════════════════════════════╝
-🎯 Target:           example.com
-📡 Total Ports:      1000
-🔧 Scan Method:      TCP Connect
-🔌 Protocol(s):      TCP
-⚡ Concurrency:      100
-⏱️ Timeout:          3000ms
-🔍 Service Detection: ENABLED
-🖥️ OS Fingerprinting: ENABLED
-🔐 SSL/TLS Analysis:  ENABLED
-
-🔍 Scanning example.com [████████████████████████████████████████████████████] 100% (1000/1000)
-  🌐 TCP  [████████████████████████████████████████████████████] 1000/1000 3 open ports found
-  🔐 SSL  [████████████████████████████████████████████████████] 1/1 1 services analyzed
-  🖥️ OS   [████████████████████████████████████████████████████] 100% 85% confidence
-
-╔═══════════════════════════════════════════════════════════════╗
-║                SCAN RESULTS FOR example.com                  ║
-╚═══════════════════════════════════════════════════════════════╝
-
-┌─────────────────────────────────────────────────────────────┐
-│                     🌐 TCP SCAN RESULTS                      │
-└─────────────────────────────────────────────────────────────┘
-
-🎯 3 open TCP ports discovered:
-
-─────────────────────────────────────────────────────────────────────────────
-PORT     STATE        SERVICE                   VERSION         RESPONSE
-─────────────────────────────────────────────────────────────────────────────
-⚡ 22/tcp  open         ssh                      OpenSSH 8.2     45ms
-         └─ Banner: SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.3
-         └─ CPE: cpe:/a:openbsd:openssh:8.2p1
-
-🔗 80/tcp  open         http                     Apache 2.4.41   89ms
-         └─ Banner: Server: Apache/2.4.41 (Ubuntu)
-         └─ Confidence: 95%
-
-🔗 443/tcp open         https                    Apache 2.4.41   112ms
-         └─ Banner: Server: Apache/2.4.41 (Ubuntu)
-─────────────────────────────────────────────────────────────────────────────
-
-┌─────────────────────────────────────────────────────────────┐
-│                  🖥️ OS DETECTION RESULTS                    │
-└─────────────────────────────────────────────────────────────┘
-
-🟢 Operating System: Ubuntu Linux 20.04
-   📊 Confidence: 85% (High)
-   💻 Device Type: Server
-   🏢 Vendor: Canonical Ltd.
-   ⚙️ Architecture: x86_64
-
-   🔧 Technical Details:
-      • TTL: 64
-      • Window Size: 29200
-      • TCP Timestamps: Enabled
-      • Window Scaling: Enabled
-      • SACK: Enabled
-      • Closed Port Response: RST
-
-   🏷️ CPE: cpe:/o:canonical:ubuntu_linux:20.04
-
-┌─────────────────────────────────────────────────────────────┐
-│                  🔐 SSL/TLS ANALYSIS RESULTS                │
-└─────────────────────────────────────────────────────────────┘
-
-🟢 Port 443: Security Score 92/100 (Excellent)
-   📜 Certificate: CN=example.com
-   🏢 Issuer: DigiCert Inc
-   🟢 Expires: 2025-03-15 (89 days)
-   🔌 Protocols: TLS 1.2, TLS 1.3
-   💡 Recommendations:
-      🟢 SSL/TLS configuration is secure
-      • Implement HTTP Strict Transport Security (HSTS)
-      • Consider certificate transparency monitoring
-
-┌─────────────────────────────────────────────────────────────┐
-│                      📊 SCAN SUMMARY                        │
-└─────────────────────────────────────────────────────────────┘
-
-📈 Statistics:
-   ┌─────────────────────┬─────────────────────┐
-   │ Total Ports Scanned │                1000 │
-   │ Open Ports          │                   3 │
-   │ Closed Ports        │                 997 │
-   │ Filtered Ports      │                   0 │
-   │ Scan Time           │               2.45s │
-   └─────────────────────┴─────────────────────┘
-
-⚡ Performance: 408 ports/second
-
-🛡️ Security Assessment:
-   Overall Security Score: 85/100 (Good)
-   🟢 No immediate security concerns detected
-
-🔌 Protocol Breakdown:
-   TCP: 3 open / 1000 scanned
-
-🔍 Service Identification:
-   TCP services identified: 3/3
-
-🔐 SSL/TLS Services: 1 analyzed
-
-💡 Security Recommendations:
-   🟢 SSH detected - ensure key-based authentication
-   🟢 HTTPS enabled - good security practice
-   🟢 No immediate security concerns detected
-
-─────────────────────────────────────────────────────────────────────────────
-✅ Scan completed at 2024-01-15 14:30:45 UTC
-─────────────────────────────────────────────────────────────────────────────
-
-🎉 SCAN COMPLETED SUCCESSFULLY! 🎉
-══════════════════════════════════════════════════════════════
-
-✅ 3 open ports discovered!
-⏱️ Scan completed in 2.45 seconds
-🚀 Thank you for using PortScanner!
-```
-
-### IPv6 Terminal Output
+### Enhanced Terminal Output with Security Analysis
 
 ```
-🔍 Validating target: 2606:4700::6810:85e5
-   ✅ Valid IPv6 address
+🛡️  SECURITY RISK ASSESSMENT
+════════════════════════════════════════════════════════════════
 
-Target IP version: IPv6
-Normalized: 2606:4700::6810:85e5
+🟡 Overall Risk Score: 73/100 (Good)
 
-IPv6 Scanning Notes:
-• IPv6 stealth scanning requires root privileges
-• All features (SSL, service detection, OS fingerprinting) work with IPv6
-• Consider using higher timeouts for IPv6 networks
+🚨 CRITICAL FINDINGS:
+   • High-Risk Service Exposed: Port 23 (Ports: [23])
+     Remediation: Disable Telnet service. Use SSH for secure remote access.
 
-╔═══════════════════════════════════════════════════════════════╗
-║           SCAN RESULTS FOR 2606:4700::6810:85e5 (IPv6)      ║
-╚═══════════════════════════════════════════════════════════════╝
+📊 RISK CATEGORIES:
+   🟢 ExposedServices: 85/100 (Medium priority)
+   🔴 InsecureProtocols: 45/100 (High priority)
+   🟡 UnencryptedTraffic: 60/100 (High priority)
+   🟢 DatabaseExposure: 100/100 (Low priority)
+   🟡 RemoteAccess: 70/100 (Medium priority)
 
-┌─────────────────────────────────────────────────────────────┐
-│                     🌐 TCP SCAN RESULTS                      │
-└─────────────────────────────────────────────────────────────┘
+💡 TOP RECOMMENDATIONS:
+   1. 🚨 Address: High-Risk Service Exposed: Port 23
+      Disable Telnet service. Use SSH for secure remote access.
+   2. 🔴 Migrate to Secure Protocols
+      Replace insecure protocols (Telnet, FTP, HTTP) with secure alternatives (SSH, SFTP, HTTPS).
+   3. 🔴 Implement Encryption
+      Enable encryption for all data in transit. Update SSL/TLS configurations.
+   4. 🟡 Implement Security Monitoring
+      Deploy SIEM, intrusion detection systems, and log monitoring for early threat detection.
+   5. 🟢 Regular Security Assessments
+      Conduct regular penetration testing and vulnerability assessments.
 
-🎯 3 open TCP ports discovered:
+🎯 ATTACK SURFACE:
+   • 5 total exposed ports
+   • 1 high-risk services
+   • 3 potential entry points
 
-─────────────────────────────────────────────────────────────────────────────
-PORT     STATE        SERVICE                   VERSION         RESPONSE
-─────────────────────────────────────────────────────────────────────────────
-🔗 80/tcp  open         http                     Cloudflare      156ms
-         └─ Banner: Server: cloudflare
-         └─ CPE: cpe:/a:cloudflare:cloudflare
+📋 COMPLIANCE STATUS:
+   • Overall Compliance: 78%
+   • PCI_DSS: 65%
+   • NIST: 91%
 
-🔗 443/tcp open         https                    Cloudflare      198ms
-         └─ Banner: Server: cloudflare
-         └─ CPE: cpe:/a:cloudflare:cloudflare
-
-🔗 2053/tcp open        dns                      Cloudflare      234ms
-         └─ Banner: Cloudflare DNS over HTTPS
-─────────────────────────────────────────────────────────────────────────────
-
-┌─────────────────────────────────────────────────────────────┐
-│                     📡 UDP SCAN RESULTS                      │
-└─────────────────────────────────────────────────────────────┘
-
-🎯 1 open UDP ports discovered:
-
-─────────────────────────────────────────────────────────────────────────────
-PORT     STATE        SERVICE                   RESPONSE        TIME
-─────────────────────────────────────────────────────────────────────────────
-📡 53/udp  open         DNS Server               Cloudflare      145ms
-         └─ Response: DNS Server (Cloudflare)
-─────────────────────────────────────────────────────────────────────────────
-
-🛡️ Security Assessment:
-   Overall Security Score: 88/100 (Good)
-   🟢 IPv6 implementation appears secure
-   🟢 Modern services with good security practices
+════════════════════════════════════════════════════════════════
 ```
 
 ## 🔧 Building from Source
-
-### Prerequisites
-
-- Rust 1.70 or later
-- Cargo package manager
-- For interactive mode: Terminal with Unicode support
 
 ### Enhanced Dependencies
 
@@ -527,187 +425,168 @@ crossterm = "0.27"
 libc = "0.2"
 ```
 
-### Build Steps
+### Build Steps with Security Testing
 
 ```bash
 # Clone the repository
 git clone https://github.com/genc-murat/portscanner.git
 cd portscanner
 
-# Build in debug mode
-cargo build
-
 # Build optimized release version
 cargo build --release
 
-# Run tests (includes IPv6 tests)
+# Run comprehensive tests (includes security assessment tests)
 cargo test
 
-# Try interactive mode
+# Test interactive mode with security features
 cargo run -- --interactive
 
-# Test IPv4 functionality
-cargo run -- -t google.com -p 80,443
+# Test security assessment functionality
+cargo run -- -t 127.0.0.1 --risk-assessment --compliance all
 
-# Test IPv6 functionality
-cargo run -- -t 2001:4860:4860::8888 -p 53
+# Test threat modeling
+cargo run -- -t localhost --threat-model --json
 
-# Test dual-stack
-cargo run -- -t example.com --protocol both -p 80,443,53
+# Test comprehensive security analysis
+cargo run -- -t scanme.nmap.org --aggressive --html security_test.html
 ```
 
-## 🎯 IPv6 Support
+## 🎯 IPv6 Support with Security Analysis
 
-### IPv6 Address Formats
-
-The scanner supports all standard IPv6 address formats:
+IPv6 targets receive full security assessment including:
 
 ```bash
-# Full IPv6 address
-portscanner -t 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+# IPv6 security assessment
+portscanner -t 2001:db8::1 --risk-assessment
 
-# Compressed IPv6 address
-portscanner -t 2001:db8:85a3::8a2e:370:7334
+# IPv6 compliance checking
+portscanner -t 2606:4700::6810:85e5 --compliance pci-dss
 
-# IPv6 localhost
-portscanner -t ::1
-
-# IPv6 with zone identifier (link-local)
-portscanner -t fe80::1%eth0
-
-# Dual-stack scanning (both IPv4 and IPv6)
-portscanner -t example.com # Will resolve to both IPv4 and IPv6
+# Comprehensive IPv6 security analysis
+portscanner -t 2001:4860:4860::8888 --aggressive --html ipv6_security.html
 ```
 
-### IPv6 Interactive Mode
+## 🎨 Enhanced HTML Security Reports
 
-```bash
-# Interactive mode with IPv6 support
-portscanner --interactive
+The HTML reports now include comprehensive security dashboards:
 
-# In interactive mode, you can:
-# - Enter IPv6 addresses in any format
-# - Choose IPv6-only or dual-stack scanning
-# - Configure IPv6-specific timeouts
-# - Generate IPv6-aware reports
-```
+### Security Dashboard Features
+- **📊 Executive Summary**: High-level security posture overview
+- **🛡️ Risk Score Visualization**: Interactive risk scoring charts
+- **🚨 Critical Findings**: Prioritized security issues
+- **📋 Compliance Matrix**: Framework-specific compliance status
+- **🎯 Attack Surface Map**: Visual attack vector analysis
+- **💡 Remediation Roadmap**: Prioritized action items with timelines
 
-## 🎨 Enhanced HTML Reports
-
-The HTML reports now include:
-
-### Interactive Features
-- **📊 Dynamic Charts**: Real-time port distribution graphs
-- **🔍 Search & Filter**: Find specific ports or services
-- **📱 Mobile Responsive**: Works on all devices
-- **🌙 Dark Mode**: Automatic theme switching
-- **⚡ Fast Navigation**: Quick jump to sections
-
-### Visual Enhancements
-- **🎭 Modern Design**: Clean, professional appearance
-- **📈 Progress Indicators**: Visual scan progress
-- **🔔 Alert System**: Important findings highlighted
-- **📋 Export Options**: PDF, CSV, and JSON export
-- **🔗 Hyperlinks**: Clickable CPE and CVE references
-
-### Security Dashboard
-- **🛡️ Security Score**: Color-coded risk assessment
-- **📊 Vulnerability Matrix**: Comprehensive security overview
-- **💡 Recommendations**: Actionable security advice
-- **🔒 SSL/TLS Report**: Detailed certificate analysis
-- **📈 Trend Analysis**: Historical comparison support
+### Security Report Sections
+1. **Executive Summary**: C-level security overview
+2. **Risk Assessment**: Detailed risk analysis and scoring
+3. **Critical Findings**: Immediate action items
+4. **Vulnerability Details**: Technical vulnerability information
+5. **Compliance Status**: Framework-specific compliance checking
+6. **Attack Surface Analysis**: Entry points and lateral movement risks
+7. **Threat Model**: Advanced threat intelligence
+8. **Recommendations**: Prioritized remediation guidance
+9. **Technical Details**: Standard port scan results
+10. **Appendices**: Reference materials and methodology
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+Contributions are welcome! Security-focused contributions are especially appreciated:
 
-### Development Setup
+### Security Development Areas
+- **🛡️ Risk Assessment Engine**: Enhance risk calculation algorithms
+- **📋 Compliance Frameworks**: Add support for additional standards
+- **🎯 Threat Intelligence**: Improve threat modeling capabilities
+- **🔒 Vulnerability Database**: Expand vulnerability detection
+- **📊 Reporting**: Enhance security visualization and dashboards
+
+### Development Setup with Security Testing
 
 ```bash
 # Fork and clone the repo
 git clone https://github.com/genc-murat/portscanner.git
 cd portscanner
 
-# Create a feature branch
-git checkout -b feature/ui-enhancement
+# Create a security feature branch
+git checkout -b feature/security-enhancement
 
-# Make your changes and test
+# Test security features
 cargo test
-cargo build
-
-# Test interactive mode
+cargo run -- -t 127.0.0.1 --aggressive
 cargo run -- --interactive
 
-# Test IPv4 functionality
-cargo run -- -t 127.0.0.1 --protocol both --ssl-analysis -p 22,53,80,123,443
-
-# Test IPv6 functionality  
-cargo run -- -t ::1 --protocol both --ssl-analysis -p 22,53,80,123,443
-
-# Test dual-stack
-cargo run -- -t localhost --protocol both -p 80,443
+# Validate security assessment accuracy
+cargo run -- -t scanme.nmap.org --risk-assessment --compliance all --html test_security.html
 
 # Commit and push
-git commit -m "Add UI enhancement"
-git push origin feature/ui-enhancement
+git commit -m "Add security enhancement"
+git push origin feature/security-enhancement
 ```
-
-### Code Style
-
-- Follow Rust conventions and use `cargo fmt`
-- Add tests for new features (include IPv6 test cases)
-- Update documentation as needed
-- Ensure `cargo clippy` passes without warnings
-- Test both IPv4 and IPv6 functionality when making changes
-- Validate UI components work in different terminals
-- Test interactive mode thoroughly
 
 ## 📝 License
 
 This project is licensed under the MIT License - see the **LICENSE** file for details.
 
-## ⚠️ Disclaimer
+## ⚠️ Security Disclaimer
 
-This tool is for educational and authorized testing purposes only. Always ensure you have permission to scan the target systems. The developers are not responsible for any misuse of this software.
+This tool is designed for authorized security testing and assessment purposes only. The risk assessment and vulnerability detection features should be used responsibly:
+
+- ✅ **Authorized Testing**: Only scan systems you own or have explicit permission to test
+- ✅ **Security Research**: Use for legitimate security research and hardening
+- ✅ **Compliance Auditing**: Employ for regulatory compliance verification
+- ❌ **Unauthorized Scanning**: Never scan systems without proper authorization
+- ❌ **Malicious Use**: Do not use for illegal or harmful activities
 
 ## 🙏 Acknowledgments
 
 - Inspired by the original [Nmap](https://nmap.org/) project
+- Security assessment methodologies based on industry standards
 - Built with the amazing [Tokio](https://tokio.rs/) async runtime
 - CLI powered by [Clap](https://clap.rs/)
 - Interactive UI powered by [Dialoguer](https://github.com/console-rs/dialoguer)
 - Progress bars by [Indicatif](https://github.com/console-rs/indicatif)
-- Colors by [Colored](https://github.com/colored-rs/colored)
-- IPv6 support follows RFC 4291 and related standards
+- Risk assessment frameworks inspired by NIST and OWASP guidelines
 
 ---
 
-⭐ If you find this project useful, please consider giving it a star on GitHub!
+⭐ If you find this project useful for your security assessments, please consider giving it a star on GitHub!
 
-## 📚 Resources
+## 📚 Security Resources
 
-### IPv6 Resources
-- [RFC 4291 - IPv6 Addressing Architecture](https://tools.ietf.org/html/rfc4291)
-- [RFC 4861 - Neighbor Discovery for IPv6](https://tools.ietf.org/html/rfc4861)
-- [RFC 8200 - IPv6 Specification](https://tools.ietf.org/html/rfc8200)
-- [IPv6 Address Planning](https://www.ripe.net/publications/docs/ripe-690)
-
-### Security Resources
-- [OWASP Testing Guide](https://owasp.org/www-project-web-security-testing-guide/)
+### Risk Assessment Resources
 - [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework)
-- [SSL/TLS Best Practices](https://wiki.mozilla.org/Security/Server_Side_TLS)
-- [IPv6 Security Best Practices](https://tools.ietf.org/html/rfc4942)
+- [OWASP Risk Rating Methodology](https://owasp.org/www-community/OWASP_Risk_Rating_Methodology)
+- [CVSS Scoring Guide](https://www.first.org/cvss/user-guide)
+- [PCI DSS Requirements](https://www.pcisecuritystandards.org/)
 
-### Development Resources
-- [Rust Book](https://doc.rust-lang.org/book/)
-- [Tokio Tutorial](https://tokio.rs/tokio/tutorial)
-- [Clap Documentation](https://docs.rs/clap/latest/clap/)
-- [Async Programming in Rust](https://rust-lang.github.io/async-book/)
+### Vulnerability Assessment Resources
+- [CVE Database](https://cve.mitre.org/)
+- [NVD Vulnerability Database](https://nvd.nist.gov/)
+- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
+- [CWE Common Weakness Enumeration](https://cwe.mitre.org/)
+
+### Compliance Resources
+- [PCI DSS Self-Assessment](https://www.pcisecuritystandards.org/pci_security/completing_self_assessment)
+- [NIST Compliance Guide](https://www.nist.gov/cyberframework/getting-started)
+- [SOC 2 Compliance](https://www.aicpa.org/interestareas/frc/assuranceadvisoryservices/aicpasoc2report.html)
+- [ISO 27001 Information Security](https://www.iso.org/isoiec-27001-information-security.html)
+
+### IPv6 Security Resources
+- [RFC 4942 - IPv6 Transition/Coexistence Security Considerations](https://tools.ietf.org/html/rfc4942)
+- [NIST IPv6 Security Guidelines](https://csrc.nist.gov/publications/detail/sp/800-119/final)
+- [IPv6 Security Best Practices](https://www.internetsociety.org/deploy360/ipv6/security/)
 
 ---
 
-🚀 **Ready to scan? Try interactive mode first!**
+🛡️ **Ready for comprehensive security assessment? Start with interactive mode!**
 
 ```bash
 ./target/release/portscanner --interactive
+```
+
+🚀 **Quick security check:**
+
+```bash
+./target/release/portscanner -t your-target.com --risk-assessment --compliance all
 ```
